@@ -4,12 +4,15 @@ title: About
 permalink: /about/
 ---
 
-Some information about you!
+### Información Personal
 
-### More Information
+Beltramone Matías 
 
-A place to include any other types of information that you'd like to include about yourself.
+Desarrollador Web  
 
-### Contact me
+Estudiante de Ing. en Sistemas  
 
-[email@domain.com](mailto:email@domain.com)
+
+### Contacto
+
+[maatisk@gmail.com](mailto:maatisk@gmail.com)
