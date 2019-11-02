@@ -1,3 +1,9 @@
+---
+layout: post
+title: Programación Orientada a Objetos: Lección 1.
+tags: [POO, OOP, Programación Orientada a Objetos, Object Oriented Programming]
+---
+
 ### ¿Qué es el Paradigma Orientado a Objetos?
 
 La programación orientada a objetos es un paradigma basado en agrupar "datos" o "propiedades" y su comportamiento relacionado a las propiedades de un concepto determinado como puede ser una "Vivienda", "Vehiculo", a traves de un elemento especial llamado **objetos**, los cuales son construidos a partir de una "estructura" o "esquema", definido por el programador, el cuál lo llamamos **clases**
