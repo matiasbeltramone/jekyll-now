@@ -10,6 +10,8 @@ La **programación orientada a objetos** es un paradigma basado en agrupar `prop
 de un concepto determinado como puede ser una "Vivienda", "Vehiculo", a traves de un elemento especial llamado **objetos**,
 los cuales son construidos a partir de una "estructura" o "esquema", definido por el programador, el cuál lo llamamos **clases**.
 
+Los **objetos** normalmente no dejan de ser una **representación de algo** en nuestro mundo (casa, vehiculos, empresas, personas, comida, dinero), aunque también podría ser la representación de algun concepto mas **abstracto** que no podamos ver, sentir, pero que represente algo en particular que sea útil en nuestro **modelo de negocio**.
+
 ### Objetos, Clases
 <p align="center"><img src="https://user-images.githubusercontent.com/22304957/68073515-d8ae2780-fd6f-11e9-8857-c2b5fd9c466f.png"/>
 </p>
