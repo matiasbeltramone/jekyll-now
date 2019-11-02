@@ -8,11 +8,14 @@ permalink: /about/
 
 Beltramone Matías 
 
-Desarrollador Web  
+Desarrollador Backend  
 
 Estudiante de Ing. en Sistemas  
 
+Trabajando como Freelance en Rooftop.
+
+Córdoba. Argentina
 
 ### Contacto
 
-[maatisk@gmail.com](mailto:maatisk@gmail.com)
+[mgbeltramone@gmail.com](mailto:mgbeltramone@gmail.com)
