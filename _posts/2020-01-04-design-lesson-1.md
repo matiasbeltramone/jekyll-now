@@ -4,6 +4,8 @@ title: "Programación Orientada a Objetos: Patrones de Diseño"
 tags: [POO, OOP, Programación Orientada a Objetos, Object Oriented Programming, Design Patterns]
 ---
 
+Anteriormente hablabamos que en la simetría que conocemos y encontramos dentro de nuestro mundo, se esconden en nuestro día a día muchos patrones que la inteligencia humana tiene la capacidad de reconocer continuamente, algo parecido a nuestra realidad se encuentra dentro de nuestro Software ¿Cómo es esto así? bueno basicamente podemos resumirlo de la siguiente manera:
+
 ### ¿Qué es un Patrón de Diseño?
 
 Son soluciones tipicas a problemas que ocurren comunmente en el diseño de software. Son esquemas, estructuras bases,
