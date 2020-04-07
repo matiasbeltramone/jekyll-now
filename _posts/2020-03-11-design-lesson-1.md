@@ -8,18 +8,18 @@ Anteriormente hablabamos que en la simetría que conocemos y encontramos dentro 
 
 ### ¿Qué es un Patrón de Diseño?
 
-Son soluciones tipicas a problemas que ocurren comunmente en el diseño de software. Son esquemas, estructuras bases,
+Son **soluciones tipicas a problemas que ocurren comunmente en el diseño de software**. Son esquemas, estructuras bases,
 que podes personalizar para resolver un problema recurrente del código.
 
 No podes buscar un patrón y copiarlo directamente dentro de tu programa, de la misma manera que hacemos con librerías de terceros.
-El patrón no es una pieza de código especifica que simplemente se copia y se pega, como puede ser un algoritmo, es un concepto general para resolver un problema particular.
+El **patrón** no es una pieza de código especifica que simplemente se copia y se pega, como puede ser un algoritmo, es un concepto general para resolver un problema particular.
 Solamente podes seguir los detalles, la idea del patrón e implementar una solución que se adapte a la realidad de tu programa.
 
-Los patrones son a menudo confundidos con algoritmos, porque ambos conceptos describen soluciones tipicas a algunos problemas conocidos.
-Mientras que un algoritmo siempre define unas acciones claras que debes hacer para llegar a un objetivo en particular, un patrón es más una descripción de alto nivel de una solución particular.
+Los **patrones** son a menudo confundidos con algoritmos, porque ambos conceptos describen soluciones tipicas a algunos problemas conocidos.
+Mientras que un **algoritmo** siempre define unas acciones claras que debes hacer para llegar a un objetivo en particular, un patrón es más una descripción de alto nivel de una solución particular.
 El código del mismo patrón aplicado a dos programas diferentes, puede y seguramente será diferente en su implementación.
 
-Una analogía de un algoritmo es una receta de cocina: Donde claramente existen pasos para llegar a un objetivo (hacer cierta receta). Por otro lado, un patrón es más como un plano: tu puedes ver cuál es el resultado y las características que tiene, pero la implementación exacta para llegar a esto depende de nosotros.
+Una analogía de un **algoritmo** es una receta de cocina: Donde claramente existen pasos para llegar a un objetivo (hacer cierta receta). Por otro lado, un patrón es más como un plano: tu puedes ver cuál es el resultado y las características que tiene, pero la implementación exacta para llegar a esto depende de nosotros.
  
 ### ¿En que consiste un patron?
  
@@ -38,13 +38,14 @@ Algunos catálogos de patrones enumeran otros detalles útiles, como aplicacion 
 
 ### Clasificación de patrones
 
-Los patrones de diseño son diferentes por su complejidad, nivel de detalle y aplicabilidad a escala a todo el sistema que esta siendo diseñado.
-Me gusta la analogía con la construcción de rutas: puedes hacer una intersección segura instalando algunos semaforos o construyendo una estructura multinivel con pasajes subterranos para peatones o algún puente que pase por arriba de las rutas.
-Los patrones más básicos y de bajo nivel son a menudo llamado `idioms`
-Por lo general, se aplican solo a un solo lenguaje de programación.
+Los **patrones de diseño** son diferentes por su complejidad, nivel de detalle y aplicabilidad a escala a todo el sistema que esta siendo diseñado.
 
-Los patrones más universales y de alto nivel son patrones arquitectónicos. Los desarrolladores pueden implementar estos patrones en cualquier lenguaje. A diferencia de otros patrones, pueden usarse para
-diseñar la arquitectura de una aplicación completa.
+Me gusta la analogía con la construcción de rutas: puedes hacer una intersección segura instalando algunos semaforos o construyendo una estructura multinivel con pasajes subterranos para peatones o algún puente que pase por arriba de las rutas.
+
+Los **patrones más básicos** y de bajo nivel son a menudo llamado `idioms`
+Por lo general, se aplican solo a un solo lenguaje de programación. Patrones que ayudan a implementar aspectos particulares del diseño en un lenguaje de programación específico. Ejemplo: en Java implementar una interface en una clase anónima.
+
+Los patrones más universales y de alto nivel son **patrones arquitectónicos**. Los desarrolladores pueden implementar estos patrones en cualquier lenguaje. A diferencia de otros patrones, pueden usarse para diseñar la arquitectura de una aplicación completa.
 
 Además, todos los patrones de diseño de clases se pueden clasificar por su intención, o propósito.
 
