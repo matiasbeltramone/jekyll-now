@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Programación Orientada a Objetos: Principios de Diseño de Software II"
+title: "POO Lección 8: Principios de Diseño de Software II"
 tags: [POO, OOP, Programación Orientada a Objetos, Object Oriented Programming, Software Design Principles]
 ---
 
