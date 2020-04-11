@@ -9,7 +9,7 @@ tags: [POO, OOP, Programación Orientada a Objetos, Object Oriented Programming,
 Más adelante veremos los patrones más actuales, diferentes conceptos de diseños de arquitectura, pero antes vamos a discutir
 el proceso de la **arquitectura del diseño de software** es decir: cosas a las que debemos apuntar y cosas que sería mejor evitar.
 
-#### Reutilización de código
+#### :recycle: Reutilización de código
 
 **Costo y tiempo** son dos de las cosas de más valor cuando hablamos de métricas en el desarrollo de cualquier producto de software.
 
@@ -42,7 +42,7 @@ Los patrones de diseño son más pequeños y más abstractos que los frameworks.
 Lo bueno de esta **capa intermedia** es que los **patrones** ofrecen reutilizar de una manera que sea **menos riesgosa** que los **frameworks**. Construir un **framework es de alto riesgo** y una inversión significativa. **Los patrones
 te permiten reutilizar ideas y conceptos de diseño independientemente del código concreto**.
 
-#### Extensibilidad
+#### :boom: Extensibilidad
 
 **Los cambios son la única constante en la vida de un programador**.
 
