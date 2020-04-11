@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Programación Orientada a Objetos: Patrones de Diseño"
+title: "POO Lección 6: Patrones de Diseño"
 tags: [POO, OOP, Programación Orientada a Objetos, Object Oriented Programming, Design Patterns]
 ---
 
