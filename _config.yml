@@ -47,7 +47,7 @@ google_analytics:
 
 jekyll_analytics:
   GoogleAnalytics:          # Add, if you want to track with Google Analytics
-    id: UA-165010552-1          # Required - replace with your tracking id
+    id: UA-165010046-1          # Required - replace with your tracking id
     anonymizeIp: false      # Optional - Default: false - set to true for anonymized tracking
 
 # Your website URL (e.g. http://barryclark.github.io or http://www.barryclark.co)
