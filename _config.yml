@@ -6,11 +6,10 @@
 name: Beltramone Matías
 
 # Short bio or description (displayed in the header)
-description: Backend Developer
+description: Backend Web Developer
 
 # URL of your avatar or profile pic (you could use your GitHub profile pic)
-avatar: https://scontent.fsfn4-1.fna.fbcdn.net/v/t1.0-9/12241444_493489417494977_8609951435308353988_n.jpg?_nc_cat=101&_nc_sid=85a577&_nc_ohc=Y8emH5VK4VgAX_zPUcr&_nc_ht=scontent.fsfn4-1.fna&oh=8584a4d891457244048b79511b396e6d&oe=5EA2A03D
-
+avatar: https://user-images.githubusercontent.com/22304957/80640774-48a91c00-8a3a-11ea-98bf-14a852c1c1c1.jpg
 #
 # Flags below are optional
 #
@@ -31,6 +30,8 @@ footer-links:
   youtube: # channel/<your_long_string> or user/<user-name>
   googleplus: # anything in your profile username that comes after plus.google.com/
 
+plugins:
+  - jekyll-feed
 
 # Enter your Disqus shortname (not your username) to enable commenting on posts
 # You can find your shortname on the Settings page of your Disqus account
