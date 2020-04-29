@@ -43,7 +43,7 @@ plugins:
 disqus:
 
 # Enter your Google Analytics web tracking code (e.g. UA-2110908-2) to activate tracking
-google_analytics:
+google_analytics: UA-165010046-1
 
 jekyll_analytics:
   GoogleAnalytics:          # Add, if you want to track with Google Analytics
