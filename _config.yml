@@ -14,6 +14,10 @@ avatar: https://user-images.githubusercontent.com/22304957/80640774-48a91c00-8a3
 # Flags below are optional
 #
 
+favicon:
+  source: https://user-images.githubusercontent.com/22304957/80644516-24503e00-8a40-11ea-905c-81b7b5f0e72a.png
+  path: /assets/img
+
 # Includes an icon in the footer for each username you enter
 footer-links:
   dribbble:
