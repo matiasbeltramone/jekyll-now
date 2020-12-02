@@ -1,3 +1,9 @@
+---
+layout: post
+title: "¿Código de infraestructura ó negocio?"
+tags: [Arquitecturas, Architecture, Clean Code, Código Limpio]
+---
+
 ***Infrastructure or core code?***
 
 Dentro de las arquitecturas limpias como Hexagonal o Ports and Adapters es importante hacer una distinción clara entre el **código de negocio** (core code) de su aplicación y el **código de infraestructura** que lo soporta. Este llamado código de infraestructura conecta la lógica de negocio de su aplicación con los sistemas que la rodean, como la base de datos, el servidor web, el sistema de archivos, etc. **Ambos tipos de código son igualmente importantes**, pero no deben convivir en las mismas clases. El resumen rápido de las razones para hacerlo es que separar el negocio de la infraestructura...
