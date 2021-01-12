@@ -611,7 +611,6 @@ Los servicios para los que tenemos abstracciones, de acuerdo con la lista anteri
 🛠 The infrastructure layer:
 
 - Controllers
-
 - Write and read model repository implementations
 
 📜 The application layer:
