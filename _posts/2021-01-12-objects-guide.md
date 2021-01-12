@@ -610,31 +610,24 @@ Los servicios para los que tenemos abstracciones, de acuerdo con la lista anteri
 
 🛠 The infrastructure layer:
 
-– Controllers
+- Controllers
 
-– Write and read model repository implementations
+- Write and read model repository implementations
 
 📜 The application layer:
 
-– Application services
-
-– Command objects
-
-– Read models
-
-– Read model repository interfaces
-
-– Event listeners
+- Application services
+- Command objects
+- Read models
+- Read model repository interfaces
+- Event listeners
 
 💜 The domain layer:
 
-– Entities
-
-– Value objects
-
-– Write model repository interfaces
-
-- Domain Events
+ - Entities
+ - Value objects
+ - Write model repository interfaces
+ - Domain Events
 
 Teniendo en cuenta que la capa de infraestructura contiene el código que facilita la comunicación con el mundo exterior, se puede dibujar como una capa alrededor de la aplicación y el dominio (ver figura debajo). Asimismo, la aplicación utiliza código de la capa de dominio para realizar sus tareas, por lo que la capa de dominio será la capa más interna de una aplicación.
 Para mostrar el uso de capas en su código, puede hacer que los nombres de las capas formen parte de los espacios de nombres de sus clases. Los ejemplos de código mostrados anteriorment también utilizan esta convención.
