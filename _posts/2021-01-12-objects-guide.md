@@ -4,7 +4,7 @@ title: "Guía de objetos DDD"
 tags: [Arquitecturas, Architecture, Clean Code, Código Limpio, DDD, Domain Driven Design]
 ---
 
-# Introducción
+## Introducción
 
 No todos los objetos de nuestra aplicación se van a ver parecidos. Algunos objetos tendrán muchos métodos de consultas, algunos tendrán solo metodos de estilo comando.
 Algunos tendrán un mix de ambos, pero con un determinado ratio de ellos. Podrás encontrarte con que diferentes tipos de objetos amenudo comparten ciertas caracteristicas,
@@ -16,7 +16,9 @@ Basicamente haremos una guía de objetos...
 
 # Interacción de objetos comunes
 
-![Captura de pantalla 2021-01-11 183251](https://user-images.githubusercontent.com/22304957/104241824-034c4380-543d-11eb-9744-c41ab80c478b.png)
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/22304957/104241824-034c4380-543d-11eb-9744-c41ab80c478b.png">
+</p>
 
 # Controllers
 
@@ -54,7 +56,9 @@ Un objeto es un controlador si...
 
 ```
 
-![Captura de pantalla 2021-01-11 190407](https://user-images.githubusercontent.com/22304957/104243738-cc2b6180-543f-11eb-9bef-cd43dcd1d25d.png)
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/22304957/104243738-cc2b6180-543f-11eb-9bef-cd43dcd1d25d.png">
+</p>
 
 Un controlador web típico se parecería al siguiente en el caso de PHP:
 
@@ -306,7 +310,9 @@ Un objeto es una entidad si...
 
 Esta imagen representa como trabajan en conjunto los diferentes tipos de objetos vistos para realizar el caso de uso correspondiente:
 
-![Screenshot from 2021-01-12 08-14-42](https://user-images.githubusercontent.com/22304957/104307762-6a561080-54ae-11eb-8703-694e8f906bd4.png)
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/22304957/104307762-6a561080-54ae-11eb-8703-694e8f906bd4.png">
+</p>
 
 # Value Objects
 
@@ -593,27 +599,41 @@ Hasta ahora, hemos encontrado diferentes tipos de objetos que puede encontrar en
 En términos de abstracción, podemos definir los siguientes rasgos para los tipos de objetos que hemos discutido hasta ahora:
 
 🩸 Los controladores son concretos. A menudo están acoplados a un framework y son específicos para el mecanismo de delivery como HTTP. No tienen ni necesitan una interfaz. El único momento en el que le gustaría ofrecer una implementación alternativa es cuando cambia de framework. En ese caso, querrá volver a escribir estos controladores en lugar de crear una segunda implementación para ellos.
+
 🩸 Los servicios de aplicación son concretos. Representan un caso de uso muy específico de su aplicación. Si la historia de un caso de uso cambia, el servicio de la aplicación en sí cambia, por lo que no tienen una interfaz.
+
 🩸 Las entidades y los objetos de valor son concretos. Son el resultado específico de la comprensión del dominio por parte del desarrollador. Este tipo de objetos evolucionan con el tiempo. No les proporcionamos una interfaz. Lo mismo ocurre con los objetos de modelo de lectura. Los definimos y usamos tal como son, nunca a través de una interfaz.
+
 🩸 Los repositorios (para modelos de escritura y lectura) consisten en una abstracción y al menos una implementación concreta. Los repositorios son servicios que se acercan y se conectan a algo fuera de la aplicación, como una base de datos, el sistema de archivos o algún servicio remoto. Es por eso que necesitan una abstracción que represente lo que hará el servicio y lo que devolverá. La implementación proporcionará todos los detalles de bajo nivel sobre cómo debe hacerlo. Lo mismo ocurre con otros objetos de servicio que se comunicarán con algún servicio fuera de la aplicación. Estos servicios también necesitarán una interfaz y una implementación concreta.
 
 Los servicios para los que tenemos abstracciones, de acuerdo con la lista anterior, deben inyectarse como dependencias abstractas. Si hacemos esto, podemos formar tres grupos útiles, o capas, de objetos:
 
 🛠 The infrastructure layer:
+
 – Controllers
+
 – Write and read model repository implementations
 
 📜 The application layer:
+
 – Application services
+
 – Command objects
+
 – Read models
+
 – Read model repository interfaces
+
 – Event listeners
 
 💜 The domain layer:
+
 – Entities
+
 – Value objects
+
 – Write model repository interfaces
+
 - Domain Events
 
 Teniendo en cuenta que la capa de infraestructura contiene el código que facilita la comunicación con el mundo exterior, se puede dibujar como una capa alrededor de la aplicación y el dominio (ver figura debajo). Asimismo, la aplicación utiliza código de la capa de dominio para realizar sus tareas, por lo que la capa de dominio será la capa más interna de una aplicación.
@@ -621,9 +641,12 @@ Para mostrar el uso de capas en su código, puede hacer que los nombres de las c
 Al inyectar dependencias abstractas, podemos asegurarnos de que los objetos solo dependan en una dirección: de arriba a abajo. Por ejemplo, un servicio de aplicación que necesita un repositorio de modelos de escritura dependerá de la interfaz de ese repositorio, no de su implementación concreta. Esto tiene dos ventajas principales.
 
 ➡️ Primero, podemos probar el código del servicio de la aplicación sin una implementación real del repositorio que necesitaría algún tipo de base de datos que esté en funcionamiento, con el esquema correcto, etc. Tenemos interfaces para todos estos servicios y podemos crear fácilmente test doubles (fakes, mocks, etc) para ellos.
+
 ➡️ En segundo lugar, podemos cambiar fácilmente las implementaciones de infraestructura. Nuestra capa de aplicación sobreviviría a un cambio entre frameworks (o una actualización a la próxima versión principal del mismo), y también sobreviviría a un cambio de bases de datos (cuando se dé cuenta de que está mejor con una base de datos gráfica que con una base de datos relacional, por ejemplo) y eliminar servicios (cuando ya no desee obtener tipos de cambio de un servicio externo, sino de su propia base de datos local).
 
-![Screenshot from 2021-01-12 10-54-14](https://user-images.githubusercontent.com/22304957/104323122-8f557e00-54c4-11eb-9a11-b3b10e90398b.png)
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/22304957/104323122-8f557e00-54c4-11eb-9a11-b3b10e90398b.png">
+</p>
 
 # Resumen
 
