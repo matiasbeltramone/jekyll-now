@@ -1,3 +1,9 @@
+---
+layout: post
+title: "Template Objects"
+tags: [Arquitecturas, Architecture, Clean Code, Código Limpio, DDD, Domain Driven Design]
+---
+
 # Entities
 <p align="center">
   <img width="50%" src="https://user-images.githubusercontent.com/22304957/104355679-c7bb8300-54e9-11eb-8f7e-65232562fde6.png">
