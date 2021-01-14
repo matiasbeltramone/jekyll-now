@@ -5,7 +5,7 @@ tags: [Arquitecturas, Architecture, Clean Code, Código Limpio, DDD, Domain Driv
 ---
 
 Analizaremos diferentes tipos de objetos y las pautas para crear instancias de ellos. En términos generales, hay dos tipos de objetos y ambos
-tienen reglas diferentes. Ahora consideraremos el primer tipo de objetos: `servicios`. La creación de `objetos puros` será el tema siguiente.
+tienen reglas diferentes. Proximamente analizaremos las características de cada uno respectivamente.
 
 # Dos tipos de objetos
 
