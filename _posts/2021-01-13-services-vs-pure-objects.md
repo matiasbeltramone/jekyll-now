@@ -30,3 +30,40 @@ se pueden construir usando `new` para instanciar su clase, por ejemplo, new File
 
 Este diagrama UML muestra cómo los servicios llamarán a otros servicios, pasando tipos de objetos puros como argumentos de método o valores de retorno.
 Dentro de un método de servicio, dicho objeto puede manipularse o un servicio puede recuperar datos de él.
+
+# Service Objects
+
+Características principales de los servicios
+
+- Inject dependencies and configuration values as constructor arguments
+- Inject what you need, not where you can get it from (Not Service Locators)
+- All constructor arguments should be required
+- Only use constructor injection
+- There’s no such thing as an optional dependency
+- Make all dependencies explicit
+- Task-relevant data should be passed as method arguments instead of constructor arguments
+- Don’t allow the behavior of a service to change after it has been instantiated
+- Do nothing inside a constructor, only assign properties
+- Throw an exception when an argument is invalid
+- Define services as an immutable object graph with only a few entry points
+
+# Pure Objects
+
+Características principales de nuestros objectos puros
+
+- Require the minimum amount of data needed to behave consistently
+- Require data that is meaningful
+- Don’t use custom exception classes for invalid argument exceptions
+- Test for specific invalid argument exceptions by analyzing the exception’s message
+- Extract new objects to prevent domain invariants from being verified in multiple places (Value Objects)
+- Extract new objects to represent composite values (Money: Represented by Amount and Currency Value Objects)
+- Use assertions to validate constructor arguments
+- Don’t inject dependencies; optionally pass them as method arguments
+- Use named constructors
+- Don’t use property fillers (fromArray(array $data))
+- Don’t put anything more into an object than it needs
+- Don’t test constructors
+- The exception to the rule: Data transfer objects
+  - Use public properties
+  - Don’t throw exceptions, collect validation errors
+  - Use property fillers when needed
