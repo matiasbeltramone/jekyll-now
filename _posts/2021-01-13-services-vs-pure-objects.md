@@ -110,6 +110,126 @@ Hay ocasiones en las que aún con todo lo que vimos de que no es recomendable ut
 
 - Make all dependencies explicit
 
+Aún con todo lo visto anteriormente pueden existir dependencias ocultas. Esto es porque no se pueden reconocer simplemente mirando de manera rápida su constructor.
+
+### Turn static dependencies into object dependencies
+
+ServiceRegistry.get()
+
+Cache.get()
+
+### Turn complicated functions into object dependencies
+
+Generalmente estas funciones complejas son parte de la librería estandar del lenguaje por ejemplo: json_decode(), json_encode(), simple_xml_load_file(), suelen ocultar tareas complejas que resuelven y parecen simples ya que llamamos a la función determinada y nos resuelve el problema.
+Podemos y deberíamos promoverlas a objectos, introduciendo alguna clase que funcione como wrapper de la función. Lo cuál nos permite agregar lógica personaliada, además de valores de argumento por defecto, o un manejo de errores personalizado.
+
+```
+final class JsonEncoder
+{
+    /**
+    * @throws RuntimeException
+    */
+    public function encode(array data): string
+    {
+       try {
+         return json_encode(
+           data,
+           JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT
+         );
+       } catch (RuntimeException previous) {
+         throw new RuntimeException(
+            'Failed to encode data: ' . var_export(data, true),
+            0,
+            previous
+         );
+    }
+    }
+}
+```
+
+Introduciendo una dependencia de objeto es el primer paso para hacer el comportamiento del servicio reconfigurable sin tocar el código en cuestión.
+
+### Make system calls explicit (DateTimes, times(), file_get_content())
+
+```
+final class MeetupRepository
+{
+    private Connection connection;
+    
+    public function __construct(Connection connection)
+    {
+       this.connection = connection;
+    }
+
+    public function findUpcomingMeetups(string area): array
+    {
+        now = new DateTime();
+
+        return this.findMeetupsScheduledAfter(now, area);
+    }
+
+    public function findMeetupsScheduledAfter(
+       DateTime time,
+       string area
+    ): array {
+    // ...
+    }
+}
+```
+
+La hora actual no es algo que el servicio pueda concluir desde los argumentos del método, ni de sus dependencias, es una dependencia oculta.
+
+Refactor:
+
+```
+
+interface Clock
+{
+   public function currentTime(): DateTime
+}
+
+final class SystemClock implements Clock
+{
+   public function currentTime(): DateTime
+   {
+      return new DateTime();
+   }
+}
+
+final class MeetupRepository
+{
+     // ...
+    private Clock clock;
+    
+    public function __construct(
+       Clock clock,
+       /* ... */
+    ) {
+       this.clock = clock;
+    }
+
+    public function findUpcomingMeetups(string area): array
+    {
+        return this.findMeetupsScheduledAfter(this.clock.currentTime(), area);
+    }
+
+    public function findMeetupsScheduledAfter(
+       DateTime time,
+       string area
+    ): array {
+    // ...
+    }
+}
+
+meetupRepository = new MeetupRepository(new SystemClock());
+meetupRepository.findUpcomingMeetups('NL');
+
+```
+
+Al hacer una interfaz cuando queremos realizar tests podemos utilizar un `fixed-time` que esta completamente bajo nuestro control. Lo convertirá en un caso deterministico, que es justo lo que necesitamos para nuestra suite de tests.
+
+Otra manera podría ser pasar el tiempo como argumento del método, lo cual lo convierte en `contextual information` que se necesita para realizar la tarea determinada.
+
 
 - Task-relevant data should be passed as method arguments instead of constructor arguments
 
