@@ -97,6 +97,12 @@ En resumen, los argumentos del constructor son usados para inyectar dependencias
 
 - Only use constructor injection
 
+Otro truco para dependencias opcionales es utilizar métodos setters que puede ser llamadas si el usuario decide utilizar esa dependencia. Esto permite al cliente inyectar Logger por ejemplo después de su construcción o instanciación. Esto sin embargo complica el código dentro de la clase y ademas viola dos reglas de objetos:
+
+1. No debe ser posible crear un objeto en un estado incompleto.
+2. Servicios deben ser inmutables eso es, que sea imposible de cambiar después de que fueron instanciados.
+
+Don't use setter injection, only use constructor injection.
 
 - There’s no such thing as an optional dependency
 
