@@ -106,6 +106,7 @@ Don't use setter injection, only use constructor injection.
 
 - There’s no such thing as an optional dependency
 
+Hay ocasiones en las que aún con todo lo que vimos de que no es recomendable utilizar dependencia opcionales, queremos que de todas maneras una sea opcional (¿Porfiados un poco no?) para eso podemos usar un objecto dummy como implementacion al que llamamos en general patrón null object (no hace nada en general), ¿como es esto? Creamos por ejemplo una interfaz: LoggerInterface y la implementamos con un objeto vacio NullLoggerImplementation. Si el opcional no es un servicio, si no que es un configuration value, podemos utilizar el mismo approach o similar. Podemos crear un objeto con un método con valores por defecto, en lugar de agregar un argumento que sea opcional, por ejemplo: Credentials.default();
 
 - Make all dependencies explicit
 
