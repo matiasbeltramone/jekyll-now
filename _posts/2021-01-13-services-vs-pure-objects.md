@@ -87,6 +87,13 @@ Si el servicio no trae una dependencia de él mismo, pero usa directamente el se
 
 - All constructor arguments should be required
 
+A veces podemos sentir que una dependencia es opcional y que el servicio funciona bien sin el. Por ejemplo: Logger, solemos considerarlo como dependencia secundaria en la tarea que realiza un servicio.
+Sin embargo esto innecesariamente complica el código, porque siempre necesitas un check dentro de la clase para saber si existe la instancia de esa clase opcional.
+Lo mismo para los configuration values. Podemos pensar que un usuario de una clase FileLogger no necesita darle un path para ecribir los mensajes de error si existe un valor por defecto para guardarlos.
+Sin embargo esto hace que cuando alguien usa la clase, no esta claro inmediatamente en que archivo se escribirá el log respectivo. Podría ser peor aún si el vaor por defecto se establece más adentro del código por ejemplo dentro de un método de la clase.
+Ya que esto nos lleva a que debemos indagar en la clase hasta encontrar el valor por defecto establecido. Ahora además se convierte en un detalle de implementación que puede facilmente cambiar sin que el cliente de la clase se entere más que inspeccionando el código de la clase.
+Por eso siempre debemos dejar al cliente de la clase proveer a cualquier configuration value que necesite el objeto. Si hacemos esto para todas las clases, podemos ver como un objeto es configurado solo mirando como se instancia.
+En resumen, los argumentos del constructor son usados para inyectar dependencias o para proveerlos de configuration values, y recordar que estos siempre deben ser requeridos, sin valores por defecto.
 
 - Only use constructor injection
 
