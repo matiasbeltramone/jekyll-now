@@ -36,15 +36,40 @@ Dentro de un método de servicio, dicho objeto puede manipularse o un servicio p
 Características principales de los servicios
 
 - Inject dependencies and configuration values as constructor arguments
+Un servicio usualmente utiliza otros servicios para hacer su trabajo. Estos otros servicios son llamados dependencias y deben ser inyectados como argumentos de constructor.
+Esto nos asegura que el servicio este listo para usar luego de la instanciación del mismo. Así no requerira una configuración especial ni podemos olvidarnos accidentalmente de proveer la dependencia necesaria para que funcione.
+A veces necesitamos algunos valores de configuración (configuration values), como por ejemplo el path adecuado para guardar archivos, o credenciales para conectarse a un servicio externo. Inyectar valores de configuración como argumentos de constructor al igual que las dependencias. Debemos asegurarnos de solo inyectar los valores que el servicio necesita y no enviar un objeto general como por ejemplo una clase: AppConfig (En el caso de Laravel: esta dependencia nos permite traer cualquier configuración necesaria de la aplicación)
+
+Keeping together configuration values that belong together
+No se debe inyectar un objeto de configuración global, solo los valores que necesite el servicio. Sin embargo, algunos de estos valores es posible que deban ir juntos, si los separamos partiriaos su cohesión natural, un caso de esto es por ejemplo: Las Credenciales para conectarse a una API. Podríamos pasarle el parametro APIClient::connect(string username, string password) pero tendría más cohesión de la siguiente manera: APIClient::connect(Credentials credentials) siendo el objeto Credentials un DTO (Data Transfer Object)
+
 - Inject what you need, not where you can get it from (Not Service Locators)
+
+
 - All constructor arguments should be required
+
+
 - Only use constructor injection
+
+
 - There’s no such thing as an optional dependency
+
+
 - Make all dependencies explicit
+
+
 - Task-relevant data should be passed as method arguments instead of constructor arguments
+
+
 - Don’t allow the behavior of a service to change after it has been instantiated
+
+
 - Do nothing inside a constructor, only assign properties
+
+
 - Throw an exception when an argument is invalid
+
+
 - Define services as an immutable object graph with only a few entry points
 
 # Pure Objects
