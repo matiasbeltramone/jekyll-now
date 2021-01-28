@@ -232,6 +232,7 @@ Otra manera podría ser pasar el tiempo como argumento del método, lo cual lo c
 
 
 - Task-relevant data should be passed as method arguments instead of constructor arguments
+
 Como sabe, un servicio debe obtener todas sus dependencias y valores de configuración inyectados como argumentos de constructor. Pero la información sobre la tarea en sí, incluida cualquier información contextual relevante, debe proporcionarse como argumentos del método.
 Como contraejemplo, considere un EntityManager que solo se puede usar para guardar una entidad en la base de datos
 
@@ -328,6 +329,94 @@ De hecho, la palabra "actual" es una señal útil de que esta información es in
 
 - Don’t allow the behavior of a service to change after it has been instantiated
 
+Como vimos anteriormente, cuando inyecta dependencias opcionales en un servicio después de la instanciación, cambiará el comportamiento de un servicio. Esto hace que el servicio sea impredecible. Lo mismo ocurre con los métodos que no inyectan dependencias pero que le permiten influir en el comportamiento del servicio desde fuera. Un ejemplo sería el método ignoreErrors() de la clase Importer:
+
+```
+final class Importer
+{
+   private bool ignoreErrors = true;
+   
+   public function ignoreErrors(bool ignoreErrors): void
+   {
+      this.ignoreErrors = ignoreErrors;
+   }
+   // ...
+}
+
+importer = new Importer();
+importer.ignoreErrors(false);
+```
+
+Asegúrese de que esto no pueda suceder. Todas las dependencias y los valores de configuración deben estar ahí desde el principio, y no debería ser posible volver a configurar el servicio después de que se haya creado una instancia.
+Otro ejemplo es un EventDispatcher en el siguiente ejemplo. Permite reconfigurar la lista de listerers activos después de crear una instancia.
+
+```
+final class EventDispatcher
+{
+    private array listeners = [];
+    
+    public function addListener(
+       string event,
+       callable listener
+    ): void {
+       this.listeners[event][] = listener;
+    }
+    
+    public function removeListener(
+       string event,
+       callable listener
+    ): void {
+       foreach (this.listenersFor(event) as key => callable) {
+         if (callable == listener) {
+            unset(this.listeners[event][key]);
+         }
+       }
+    }
+    
+    public function dispatch(object event): void
+    {
+       foreach (this.listenersFor(event.className) as callable) {
+          callable(event);
+       }
+    }
+    
+    private function listenersFor(string event): array
+    {
+        if (isset(this.listeners[event])) {
+           return this.listeners[event];
+        }
+        
+        return [];
+    }
+}
+
+```
+
+Permitir que los detectores de eventos se agreguen y eliminen sobre la marcha hace que el comportamiento de EventDispatcher sea impredecible porque puede cambiar con el tiempo. En este caso, deberíamos convertir la matriz de detectores de eventos en un argumento de constructor y eliminar los métodos addListener() y removeListener(), como se hace de la siguiente manera:
+
+```
+final class EventDispatcher
+{
+   private array listeners;
+   
+   public function __construct(array listenersByEventName)
+   {
+     this.listeners = listenersByEventName;
+   }
+   // ...
+}
+```
+
+Debido a que la matriz no es un tipo muy específico y podría contener cualquier cosa (si usa un lenguaje de programación escrito dinámicamente), debe validar el argumento listenersByEventName antes de asignarlo.
+
+Si no permite que se modifique un servicio después de la creación de instancia, y tampoco permite que tenga dependencias opcionales, el servicio resultante se comportará de manera predecible con el tiempo y no comenzará repentinamente a seguir diferentes rutas de ejecución en función de quién a llamado un método en él (ver imagen debajo).
+
+https://user-images.githubusercontent.com/22304957/106136738-77c6f800-6148-11eb-9f5d-27f8f4f2e70e.png
+
+"En el tipo de aplicaciones que creo, en realidad necesito servicios mutables".
+
+Las aplicaciones web realmente no necesitan servicios mutables; el conjunto completo de comportamientos de un servicio siempre se puede definir en el momento de la construcción.
+Es posible que esté trabajando en otros tipos de aplicaciones, donde necesita un servicio como un despachador de eventos que le permite agregar y eliminar oyentes o suscriptores después del tiempo de construcción. Por ejemplo, si está creando un juego o algún otro tipo de aplicación interactiva con una interfaz de usuario y un usuario abre una nueva ventana, querrá registrarse detectores de eventos para sus elementos de interfaz de usuario. Más tarde, cuando el usuario cierre la ventana, querrá eliminar esos oyentes nuevamente. En esos casos, los servicios realmente deben ser mutables. Sin embargo, si está diseñando tales servicios mutables, le animo a pensar en formas de no permitir que los objetos reconfiguren el comportamiento de otros objetos usando métodos públicos como addListener() y removeListener().
 
 - Do nothing inside a constructor, only assign properties
 
