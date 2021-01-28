@@ -411,7 +411,10 @@ Debido a que la matriz no es un tipo muy específico y podría contener cualquie
 
 Si no permite que se modifique un servicio después de la creación de instancia, y tampoco permite que tenga dependencias opcionales, el servicio resultante se comportará de manera predecible con el tiempo y no comenzará repentinamente a seguir diferentes rutas de ejecución en función de quién a llamado un método en él (ver imagen debajo).
 
-https://user-images.githubusercontent.com/22304957/106136738-77c6f800-6148-11eb-9f5d-27f8f4f2e70e.png
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/22304957/106136738-77c6f800-6148-11eb-9f5d-27f8f4f2e70e.png">
+</p>
+
 
 "En el tipo de aplicaciones que creo, en realidad necesito servicios mutables".
 
@@ -605,9 +608,221 @@ Ahora obtendrá un error fatal al llamar a translate () en null. Esta es la raz�
 El constructor de esta clase Mailer también es un ejemplo de cómo los datos contextuales, es decir, la configuración regional del usuario actual, a veces se pasan como un argumento de constructor. Como sabe, la información contextual debe pasarse como un argumento de método.
 
 - Throw an exception when an argument is invalid
+Cuando un cliente de una clase proporciona un argumento de constructor no válido, el verificador de tipo normalmente le advertirá, como cuando el argumento requiere una instancia de Logger y el cliente proporciona un valor bool. Sin embargo, hay otros tipos de argumentos en los que basarse únicamente en el sistema de tipos será insuficiente. Por ejemplo, en la siguiente clase Alerting, uno de los argumentos del constructor debe ser un int, que representa una bandera de configuración.
+
+```
+final class Alerting
+{
+    private int minimumLevel;
+    
+    public function __construct(int minimumLevel)
+    {
+       this.minimumLevel = minimumLevel;
+    }
+}
+alerting = new Alerting(-99999999);
+```
+
+Al aceptar cualquier int para minimumLevel, no puede estar seguro de que el valor proporcionado sea realista y pueda ser utilizado por el código restante de una manera significativa. En su lugar, el constructor debe verificar que el valor sea válido y, si no lo es, lanzar una excepción. Solo después de que el argumento haya sido validado, debe asignarse de la siguiente manera.
+
+
+```
+final class Alerting
+{
+    private int minimumLevel;
+    
+    public function __construct(int minimumLevel)
+    {
+       if (minimumLevel <= 0) {
+          throw new InvalidArgumentException(
+             'Minimum alerting level should be greater than 0'
+          );
+       }
+    
+       this.minimumLevel = minimumLevel;
+    }
+}
+
+alerting = new Alerting(-99999999);
+```
+
+Al lanzar una excepción dentro del constructor, puede evitar que el objeto se construya basándose en argumentos no válidos.
+En lugar de lanzar excepciones personalizadas, es bastante común usar funciones de aserción reutilizables para validar métodos y argumentos de constructores.
+
+NOTA
+La elección de no lanzar una excepción también podría ser una opción, si eso no rompe el comportamiento del objeto en una etapa posterior. Considere la siguiente clase de enrutador.
+
+```
+final class Router
+{
+     private array controllers;
+     private string notFoundController;
+     
+     public function __construct(
+        array controllers,
+        string notFoundController
+     ) {
+        this.controllers = controllers;
+        this.notFoundController = notFoundController;
+     }
+     
+     public function match(string uri): string
+     {
+         foreach (this.controllers as pattern => controller) {
+            if (this.matches(uri, pattern)) {
+               return controller;
+            }
+         }
+         
+         return this.notFoundController;
+     }
+     
+     private function matches(string uri, string pattern): bool
+     {
+        // ...
+     }
+}
+
+router = new Router(
+   [
+      '/' => 'homepage_controller'
+   ],
+   'not-found'
+);
+
+router.match('/');
+```
+
+¿Debería validar el argumento de los controladores aquí para verificar que contiene al menos un par de nombre de patrón / controlador de URI? En realidad, no es necesario, porque el comportamiento del enrutador no se interrumpirá si la matriz de controladores está vacía. Si acepta una matriz vacía y el cliente llama a match (), solo devolverá el controlador "no encontrado", porque no se han encontrado patrones coincidentes para el URI dado (ni ningún otro URI). Este es el comportamiento que esperaría de un enrutador, por lo que no debe considerarse un signo de lógica rota.
+Sin embargo, debe validar que todas las claves y valores de la matriz de controladores sean cadenas. Esto le ayudará a identificar los errores de programación desde el principio. Considere el siguiente ejemplo:
+
+```
+
+final class Router
+{
+    // ...
+    public function __construct(array controllers)
+    {
+        foreach (array_keys(controllers) as pattern) {
+           if (!is_string(pattern)) {
+              throw new InvalidArgumentException(
+                 'All URI patterns should be provided as strings'
+              );
+           }
+        }
+        
+        foreach (controllers as controller) {
+           if (!is_string(controller)) {
+              throw new InvalidArgumentException(
+                 'All controllers should be provided as strings'
+              );
+           }
+        }
+        
+        this.controllers = controllers;
+    }
+    // ...
+}
+
+```
+
+Alternativamente, puede usar una biblioteca de aserciones o funciones de aserciones personalizadas para validar el contenido de los controladores o usar el sistema de tipos para verificar los tipos por usted, como en el siguiente ejemplo.
+Debido a que el método addController() tiene tipos de cadena explícitos para sus argumentos, llamar a este método en cada par clave / valor en la matriz de controladores proporcionada será el equivalente a afirmar que todas las claves y valores en la matriz son cadenas.
+
+```
+final class Router
+{
+    private array controllers = [];
+    
+    public function __construct(array controllers)
+    {
+       foreach (controllers as pattern => controller) {
+          this.addController(pattern, controller);
+       }
+    }
+    
+    private function addController(
+       string pattern,
+       string controller
+    ): void {
+       this.controllers[pattern] = controller;
+    }
+    // ...
+}
+```
 
 
 - Define services as an immutable object graph with only a few entry points
+
+Una vez que el framework de la aplicación llama a su controlador (ya sea un controlador web o un controlador para una aplicación de línea de comandos), puede considerar que se conocen todas las dependencias. Por ejemplo, el controlador web necesita un repositorio del que obtener algunos objetos, necesita el motor de plantillas para representar una plantilla, necesita un factory de respuestas para crear un objeto Response, etc. Todas estas dependencias tienen sus propias dependencias, que, cuando se tienen cuidado enumerados como argumentos de constructor, se pueden crear a la vez, lo que a menudo da como resultado un gráfico de objetos bastante grande.
+Si el framework decide llamar a un controlador diferente, utilizará un gráfico diferente de objetos dependientes para realizar su tarea. El controlador en sí también es un servicio con dependencias, por lo que puede considerar que los controladores son los puntos de entrada del gráfico de objetos de la aplicación, como se muestra en la figura más abajo.
+La mayoría de las aplicaciones tienen algo así como un service container que describe cómo se pueden construir todos los servicios de la aplicación, cuáles son sus dependencias, cómo se pueden construir, etc. El contenedor también se comporta como un service locator. Usted puede
+pedirle que te devuelva uno de sus servicios para que puedas usarlo.
+
+Dado lo siguiente,
+ Todos los servicios de una aplicación forman un gran gráfico de objetos.
+ Los puntos de entrada serán los controladores.
+ Ningún servicio necesitará el service locator para recuperar servicios.
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/22304957/106193210-fb560880-618b-11eb-9573-90f8926b111e.png">
+</p>
+
+The graph contains all the services of an application, with controller services
+marked as entry point services. These are the only services that can be retrieved directly;
+all other services are only available as injected dependencies
+
+Deberíamos concluir que el service container solo necesita proporcionar métodos públicos para recuperar controladores. Los otros servicios definidos en el contenedor pueden y deben permanecer privados, porque solo serán necesarios como dependencias inyectadas para los controladores.
+Traducido a código, esto significa que podríamos usar un service container como un service locator para recuperar un controlador. Toda la otra lógica de creación de instancias de servicios que se necesita para producir los objetos del controlador puede permanecer detrás de escena, en métodos privados.
+
+
+```
+final class ServiceContainer
+{
+     public function homepageController(): HomepageController
+     {
+        return new HomepageController(
+           this.userRepository(),
+           this.responseFactory(),
+           this.templateRenderer()
+        );
+     }
+     
+     private function userRepository(): UserRepository
+     {
+        //...
+     }
+     
+     private function responseFactory(): ResponseFactory
+     {
+       //...
+     }
+     
+     private function templateRenderer(): TemplateRenderer
+     {
+        // ...
+     }
+ }
+
+
+if (uri == '/') {
+   controller = serviceContainer.homepageController();
+   response = controller.execute(request);
+   // ...
+} elseif (/* ... */) {
+  // ...
+}
+```
+
+Un service container permite la reutilización de servicios, por lo que, comenzando con el controlador como punto de entrada, no todas las ramas del gráfico de objetos serán completamente independientes.
+Por ejemplo, otro controlador puede usar la misma instancia de TemplateRenderer que HomepageController (ver imagen debajo). Por eso es importante hacer que los servicios se comporten de la manera más predecible posible. Si aplica todas las reglas discutidas anteriormente, terminará con un gráfico de objetos que se puede instanciar una vez y luego reutilizar muchas veces.
+
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/22304957/106193885-ddd56e80-618c-11eb-9b4c-0102b1052f06.png">
+</p>
+
+Different entry points use different branches of the object graph.
 
 # Pure Objects
 
