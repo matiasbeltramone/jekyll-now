@@ -232,7 +232,99 @@ Otra manera podría ser pasar el tiempo como argumento del método, lo cual lo c
 
 
 - Task-relevant data should be passed as method arguments instead of constructor arguments
+Como sabe, un servicio debe obtener todas sus dependencias y valores de configuración inyectados como argumentos de constructor. Pero la información sobre la tarea en sí, incluida cualquier información contextual relevante, debe proporcionarse como argumentos del método.
+Como contraejemplo, considere un EntityManager que solo se puede usar para guardar una entidad en la base de datos
 
+
+```
+final class EntityManager
+{
+   private object entity;
+   
+   public function __construct(object entity)
+   {
+      this.entity = entity;
+   }
+   
+   public function save(): void
+   {
+      // ...
+   }
+}
+
+user = new User(/* ... */);
+comment = new Comment(/* ... */);
+
+entityManager = new EntityManager(user);
+entityManager.save();
+
+entityManager = new EntityManager(comment);
+entityManager.save();
+```
+
+Esta no sería una clase muy útil, porque tendría que crear una instancia nueva para cada trabajo que tenga.
+Tener una entidad como argumento de constructor puede parecer una mala elección de diseño obviamente. Un escenario más sutil y común sería un servicio que obtiene la Request actual o el objeto Session actual inyectado como un argumento de constructor.
+
+
+```
+final class ContactRepository
+{
+   private Session session;
+   
+   public function __construct(Session session)
+   {
+      this.session = session;
+   }
+   
+   public function getAllContacts(): array
+   {
+      return this.select()
+        .where([
+        'userId' => this.session.getUserId(),
+        'companyId' => this.session.get('companyId')
+      ])
+      .getResult();
+   }
+}
+```
+
+Este servicio de ContactRepository no se puede utilizar para obtener los contactos de un usuario o empresa diferente al conocido por el objeto de sesión actual. Es decir, solo se puede ejecutar en un contexto.
+La inyección de parte de los detalles del trabajo como argumentos del constructor impide que el servicio sea reutilizable, y lo mismo ocurre con los datos contextuales. Toda esta información debe pasarse como argumentos de método, para que el servicio sea reutilizable para diferentes trabajos.
+Una pregunta de orientación para ayudarlo a decidir si algo debe pasarse como un argumento de constructor o como un argumento de método es: "¿Podría ejecutar este servicio en un lote, sin tener que crear una instancia una y otra vez?" Dependiendo de su lenguaje de programación, es posible que ya esté acostumbrado a la idea de que su servicio será instanciado una vez y debería estar preparado para su reutilización. Sin embargo, si usa PHP, cualquier
+objeto del que se crea una instancia suele durar solo el tiempo que sea necesario para procesar una solicitud HTTP y devolver una respuesta. En ese caso, al diseñar sus servicios, siempre debe preguntarse: "Si la memoria no se borró después de cada solicitud web, ¿podría usarse este servicio para solicitudes posteriores o tendría que reinstalarse?"
+Eche otro vistazo al servicio EntityManager que vimos anteriormente. Sería imposible guardar varias entidades en un lote sin crear una instancia del servicio nuevamente, por lo que la entidad debería convertirse en un parámetro del método save(), en lugar de ser un argumento de constructor.
+
+
+```
+final class EntityManager
+{
+   public function save(object entity): void
+   {
+      // ...
+   }
+}
+```
+
+Lo mismo ocurre con ContactRepository. No se puede usar en un lote para obtener los contactos de diferentes usuarios y diferentes empresas. getAllContacts () debería tener argumentos adicionales para la empresa actual y el ID de usuario, como se indica a continuación.
+
+```
+final class ContactRepository
+{
+   public function getAllContacts(
+      UserId userId,
+      CompanyId companyId
+   ): array {
+      return this.select()
+      .where([
+         'userId' => userId,
+         'companyId' => companyId
+      ])
+      .getResult();
+   }
+}
+```
+
+De hecho, la palabra "actual" es una señal útil de que esta información es información contextual que debe pasarse como argumentos del método: "la hora actual", "el ID de usuario actualmente conectado", "la solicitud web actual", etc. .
 
 - Don’t allow the behavior of a service to change after it has been instantiated
 
