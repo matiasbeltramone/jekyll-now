@@ -419,7 +419,190 @@ Las aplicaciones web realmente no necesitan servicios mutables; el conjunto comp
 Es posible que esté trabajando en otros tipos de aplicaciones, donde necesita un servicio como un despachador de eventos que le permite agregar y eliminar oyentes o suscriptores después del tiempo de construcción. Por ejemplo, si está creando un juego o algún otro tipo de aplicación interactiva con una interfaz de usuario y un usuario abre una nueva ventana, querrá registrarse detectores de eventos para sus elementos de interfaz de usuario. Más tarde, cuando el usuario cierre la ventana, querrá eliminar esos oyentes nuevamente. En esos casos, los servicios realmente deben ser mutables. Sin embargo, si está diseñando tales servicios mutables, le animo a pensar en formas de no permitir que los objetos reconfiguren el comportamiento de otros objetos usando métodos públicos como addListener() y removeListener().
 
 - Do nothing inside a constructor, only assign properties
+Crear un servicio significa inyectar argumentos de constructor, preparando así el servicio para su uso. El trabajo real se realizará dentro de uno de los métodos del objeto. Dentro de un constructor, a veces puede tener la tentación de hacer más que simplemente asignar propiedades, para que el objeto esté realmente listo para su uso. Tomemos, por ejemplo, la siguiente clase FileLogger.
+Tras la construcción, preparará el archivo de registro para su escritura.
 
+```
+final class FileLogger implements Logger
+{
+   private string logFilePath;
+   
+   public function __construct(string logFilePath){
+      logFileDirectory = dirname(logFilePath);
+      
+      if (!is_dir(logFileDirectory)) {
+         mkdir(logFileDirectory, 0777, true);
+      }
+   
+      touch(logFilePath);
+      this.logFilePath = logFilePath;
+   }
+   // ...
+}
+
+```
+
+Pero crear una instancia de FileLogger dejará un rastro en el sistema de archivos, incluso si nunca usa el objeto para escribir un mensaje de registro.
+Se considera de buena educación no hacer nada dentro de un constructor. Lo único que debe hacer en un constructor de servicios es validar los argumentos del constructor proporcionados y luego asignarlos a las propiedades del objeto.
+
+```
+final class FileLogger implements Logger
+{
+    private string logFilePath;
+    
+    public function __construct(string logFilePath)
+    {
+       this.logFilePath = logFilePath;
+    }
+    
+    public function log(string message): void
+    {
+       this.ensureLogFileExists();
+       // ...
+    }
+    
+    private function ensureLogFileExists(): void
+    {
+        if (is_file(this.logFilePath)) {
+           return;
+        }
+        
+        logFileDirectory = dirname(this.logFilePath);
+        
+        if (!is_dir(logFileDirectory)) {
+            mkdir(logFileDirectory, 0777, true);
+        }
+        
+        touch(this.logFilePath);
+    }
+}
+```
+
+Empujar el trabajo fuera del constructor, más profundamente en la clase, es una posible solución. En este caso, sin embargo, solo averiguaremos si es posible escribir en el archivo de registro cuando se escribe el primer mensaje en él. Lo más probable es que deseemos conocer estos problemas antes. En cambio, lo que podríamos hacer es empujar el trabajo fuera del constructor: no queremos que suceda después de construir el FileLogger, sino antes. Quizás una LoggerFactory podría encargarse de eso.
+
+```
+final class FileLogger implements Logger
+{
+    private string logFilePath;
+
+    public function __construct(string logFilePath)
+    {
+       if (!is_writable(logFilePath)) {
+          throw new InvalidArgumentException(
+             'Log file path "{logFilePath}" should be writable'
+          );
+       }
+    
+      this.logFilePath = logFilePath;
+    }
+    
+    public function log(string message): void
+    {
+       // ...
+    }
+}
+
+
+final class LoggerFactory
+{
+    public function createFileLogger(string logFilePath): FileLogger
+    {
+        if (!is_file(logFilePath)) {
+           logFileDirectory = dirname(logFilePath);
+        
+           if (!is_dir(logFileDirectory)) {
+              mkdir(logFileDirectory, 0777, true);
+           }
+
+           touch(logFilePath);
+        }
+        
+        return new FileLogger(logFilePath);
+    }
+}
+```
+
+Tenga en cuenta que mover el código de configuración del archivo de registro fuera del constructor de FileLogger cambia el contrato del propio FileLogger. En la situación inicial, podría pasar cualquier ruta de archivo de registro, y FileLogger se encargaría de todo (creando el directorio si es necesario y verificando que la ruta del archivo en sí sea modificable). En la nueva situación, FileLogger acepta una ruta de archivo de registro y espera que el directorio que lo contiene ya exista. Podemos impulsar aún más a la fase de arranque de la aplicación y reescribir el contrato de FileLogger para indicar que el cliente debe proporcionar una ruta de archivo a un archivo que ya existe y se puede escribir. El siguiente snipped muestra lo que
+se parecería:
+```
+final class FileLogger implements Logger
+{
+    private string logFilePath;
+
+    public function __construct(string logFilePath)
+    {    
+      this.logFilePath = logFilePath;
+    }
+    
+    public function log(string message): void
+    {
+       // ...
+    }
+}
+
+final class LoggerFactory
+{
+    public function createFileLogger(string logFilePath): FileLogger
+    {
+        if (!is_file(logFilePath)) {
+           logFileDirectory = dirname(logFilePath);
+        
+           if (!is_dir(logFileDirectory)) {
+              mkdir(logFileDirectory, 0777, true);
+           }
+    
+           touch(logFilePath);
+        }
+        
+        if (!is_writable(logFilePath)) {
+          throw new InvalidArgumentException(
+             'Log file path "{logFilePath}" should be writable'
+          );
+        }
+           
+        return new FileLogger(logFilePath);
+    }
+}
+```
+
+Echemos un vistazo a otro ejemplo más sutil de un objeto que hace algo en su constructor. Eche un vistazo a la siguiente clase Mailer, que llama a una de sus dependencias dentro del constructor.
+
+```
+final class Mailer
+{
+    private Translator translator;
+    private string defaultSubject;
+    
+    public function __construct(Translator translator)
+    {
+        this.translator = translator;
+        // ...
+        this.defaultSubject = this.translator.translate('default_subject');
+    }
+    // ...
+}
+```
+ 
+ ¿Qué sucede si cambiamos el orden de las asignaciones?
+
+```
+final class Mailer
+{
+    private Translator translator;
+    private string defaultSubject;
+    
+    public function __construct(Translator translator)
+    {
+        // ...
+        this.defaultSubject = this.translator.translate('default_subject');
+        this.translator = translator;
+    }
+    // ...
+}
+```
+
+Ahora obtendrá un error fatal al llamar a translate () en null. Esta es la razón por la que la regla de que solo puede asignar propiedades en los constructores de servicios tiene la consecuencia de que las asignaciones pueden ocurrir en cualquier orden. Si las asignaciones tienen que suceder en un orden específico, sabe que está haciendo algo en su constructor.
+El constructor de esta clase Mailer también es un ejemplo de cómo los datos contextuales, es decir, la configuración regional del usuario actual, a veces se pasan como un argumento de constructor. Como sabe, la información contextual debe pasarse como un argumento de método.
 
 - Throw an exception when an argument is invalid
 
