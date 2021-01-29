@@ -826,10 +826,325 @@ Different entry points use different branches of the object graph.
 
 # Pure Objects
 
+Mencionamos anteriormente que hay dos tipos de objetos: servicios y otros objetos.
+El segundo tipo de objetos se puede dividir en subtipos más específicos, a saber, objetos de valor y entidades (a veces conocidos como "modelos"). Los servicios crearán o recuperarán entidades, las manipularán o las pasarán a otros servicios. También crearán objetos de valor y los pasarán como argumentos de método, o crearán copias modificadas de ellos. En este sentido, las entidades y los objetos de valor son los materiales que utilizan los servicios para realizar sus tareas.
+
 Características principales de nuestros objectos puros
 
 - Require the minimum amount of data needed to behave consistently
+
+```
+final class Position
+{
+    private int x;
+    private int y;
+    
+    public function __construct()
+    {
+       // empty
+    }
+    
+    public function setX(int x): void
+    {
+       this.x = x;
+    }
+    
+    public function setY(int y): void
+    {
+       this.y = y;
+    }
+    
+    public function distanceTo(Position other): float
+    {
+       return sqrt(
+          (other.x - this.x) ** 2 +
+          (other.y - this.y) ** 2
+       );
+    }
+}
+
+position = new Position();
+position.setX(45);
+position.setY(60);
+```
+
+Hasta que hayamos llamado setX () y setY (), el objeto está en un estado inconsistente. Podemos notar esto si llamamos a distanceTo () antes de llamar a setX () o setY (); no dará una respuesta significativa.
+Dado que es crucial para el concepto de una posición que tenga partes x e y, tenemos que hacer cumplir esto haciendo que sea imposible crear un objeto Posición sin proporcionar valores tanto para x como para y.
+
+```
+final class Position
+{
+    private int x;
+    private int y;
+    
+    public function __construct(int x, int y)
+    {
+       this.x = x;
+       this.y = y;
+    }
+    
+    public function distanceTo(Position other): float
+    {
+       return sqrt(
+          (other.x - this.x) ** 2 +
+          (other.y - this.y) ** 2
+       );
+    }
+}
+
+position = new Position(45, 60);
+```
+
+Este es un ejemplo de cómo se puede usar un constructor para proteger un invariante de dominio, que es algo que siempre es cierto para un objeto dado, según el conocimiento de dominio que tiene sobre el concepto que representa. El invariante de dominio que se protege aquí es: "Una posición tiene una coordenada x e y".
+
 - Require data that is meaningful
+
+En el ejemplo anterior, el constructor aceptaría cualquier número entero, positivo o negativo y hasta el infinito en ambas direcciones. Ahora considere otro sistema de coordenadas, donde las posiciones consisten en una latitud y una longitud, que juntas determinan un lugar en la tierra. En este caso, no todos los valores posibles de latitud y longitud ser considerado significativo.
+
+```
+final class Coordinates
+{
+   private float latitude;
+   private float longitude;
+   
+   public function __construct(float latitude, float longitude)
+   {
+      this.latitude = latitude;
+      this.longitude = longitude;
+   }
+   
+   // ...
+}
+
+meaningfulCoordinates = new Coordinates(45.0, -60.0);
+offThePlanet = new Coordinates(1000.0, -20000.0);
+```
+
+Asegúrese siempre de que los clientes no puedan proporcionar datos que no tengan sentido. Lo que cuenta como sin sentido puede expresarse como invariante de dominio también. En este caso, el invariante es, “La latitud de una coordenada es un valor entre –90 y 90 inclusive. La longitud de una coordenada es un valor entre –180 y 180 inclusive ".
+Cuando diseñe sus objetos, déjese guiar por estos invariantes de dominio. Reúna más invariantes a medida que avanza e incorpórelos en sus pruebas unitarias. Como ejemplo, la siguiente lista usa la utilidad expectException():
+
+```
+expectException(
+   InvalidArgumentException.className,
+   'Latitude',
+   function() {
+   new Coordinates(90.1, 0.0);
+   }
+);
+
+expectException(
+   InvalidArgumentException.className,
+   'Longitude',
+   function() {
+   new Coordinates(0.0, 180.1);
+   }
+);
+
+// and so on...
+```
+
+Para que estas pruebas pasen, lanza una excepción en el constructor tan pronto como algo sobre los argumentos proporcionados parezca incorrecto.
+
+```
+final class Coordinates
+{
+   // ...
+   public function __construct(float latitude, float longitude)
+   {
+      if (latitude > 90 || latitude < -90) {
+        throw new InvalidArgumentException(
+          'Latitude should be between -90 and 90'
+        );
+      }
+      
+      this.latitude = latitude;
+      
+      if (longitude > 180 || longitude < -180) {
+        throw new InvalidArgumentException(
+          'Longitude should be between -180 and 180'
+        );
+      }
+      
+      this.longitude = longitude;
+   }
+}
+```
+
+Aunque el orden exacto de las declaraciones en su constructor no debería importar (como discutimos anteriormente), aún se recomienda que realice las verificaciones directamente sobre sus asignaciones de propiedades asociadas. Esto facilitará que el lector comprenda cómo se relacionan las dos declaraciones.
+En algunos casos, no es suficiente verificar que cada argumento del constructor sea válido por sí solo. A veces, es posible que deba verificar que los argumentos del constructor proporcionados sean significativos juntos. El siguiente ejemplo muestra la clase ReservationRequest, que se utiliza para mantener cierta información sobre una reserva de hotel.
+
+```
+final class ReservationRequest
+{
+    public function __construct(
+       int numberOfRooms,
+       int numberOfAdults,
+       int numberOfChildren
+    ) {
+       // ...
+    }
+}
+```
+
+Al discutir las reglas comerciales para este objeto con un experto en el dominio, puede aprender sobre las siguientes reglas:
+
+ Siempre debe haber al menos un adulto (porque los niños no pueden reservar una habitación de hotel por su cuenta).
+ Todo el mundo puede tener su propia habitación, pero no se pueden reservar más habitaciones que huéspedes. (No tendría sentido permitir que las personas reserven habitaciones donde nadie duerma).
+
+Entonces, resulta que numberOfRooms y numberOfAdults están relacionados y solo pueden considerarse significativos juntos. Tenemos que asegurarnos de que el constructor tome ambos valores y aplique las reglas comerciales correspondientes, como se muestra en el siguiente snippet:
+
+```
+final class ReservationRequest
+{
+   public function __construct(
+     int numberOfRooms,
+     int numberOfAdults,
+     int numberOfChildren
+   ) {
+      if (numberOfRooms > numberOfAdults + numberOfChildren) {
+         throw new InvalidArgumentException(
+           'Number of rooms should not exceed number of guests'
+         );
+      }
+      
+      if (numberOfAdults < 1) {
+         throw new InvalidArgumentException(
+           'numberOfAdults should be at least 1'
+         );
+      }
+      
+      if (numberOfChildren < 0) {
+         throw new InvalidArgumentException(
+           'numberOfChildren should be at least 0'
+         );
+      }
+   }
+}
+```
+
+En otros casos, los argumentos del constructor pueden parecer a primera vista estar relacionados, pero un rediseño podría ayudarlo a evitar validaciones de múltiples argumentos. Considere la siguiente clase, que representa un trato comercial entre dos partes, donde hay una cantidad total de dinero que debe dividirse entre dos partes.
+
+```
+final class Deal
+{
+   public function __construct(
+      int totalAmount,
+      int amountToFirstParty,
+      int amountToSecondParty
+   ) {
+      // ...
+   }
+}
+```
+
+Debe al menos validar los argumentos del constructor por separado (la cantidad total debe ser mayor que 0, etc.). Pero también hay una invariante que abarca todos los argumentos: la suma de lo que obtienen ambas partes debe ser igual a la cantidad total. El siguiente snippet muestra cómo puede verificar esta regla.
+
+```
+final class Deal
+{
+   public function __construct(
+      int totalAmount,
+      int amountToFirstParty,
+      int amountToSecondParty
+   ) {
+      // ...
+      if (amountToFirstParty + amountToSecondParty != totalAmount) {
+         throw new InvalidArgumentException(/* ... */);
+      }
+   }
+}
+```
+
+Como habrá notado, esta regla podría aplicarse de una manera mucho más simple. Se podría decir que ni siquiera es necesario proporcionar el monto total en sí, siempre que el cliente proporcione números positivos para amountToFirstParty y amountToSecondParty. El objeto Deal podría calcular por sí solo cuál era el monto total del trato sumando estos valores. La necesidad de validar los argumentos del constructor juntos desaparece.
+
+```
+final class Deal
+{
+    private int amountToFirstParty;
+    private int amountToSecondParty;
+    
+    public function __construct(
+       int amountToFirstParty,
+       int amountToSecondParty
+    ) {
+       if (amountToFirstParty <= 0) {
+         throw new InvalidArgumentException(/* ... */);
+       }
+       
+       this.amountToFirstParty = amountToFirstParty;
+       
+       if (amountToSecondParty <= 0) {
+          throw new InvalidArgumentException(/* ... */);
+       }
+       
+       this.amountToSecondParty = amountToSecondParty;
+    }
+    
+    public function totalAmount(): int
+    {
+       return this.amountToFirstPart + this.amountToSecondParty;
+    }
+}
+```
+
+Otro ejemplo en el que parecería que los argumentos del constructor deben validarse juntos es la siguiente clase, que representa una línea.
+
+```
+final class Line
+{
+    public function __construct(
+       bool isDotted,
+       int distanceBetweenDots
+    ) {
+    
+       if (isDotted && distanceBetweenDots <= 0) {
+          throw new InvalidArgumentException(
+             'Expect the distance between dots to be positive.'
+          );
+       }
+       // ...
+    }
+}
+```
+
+Sin embargo, esto podría tratarse de manera más elegante proporcionando al cliente dos formas distintas de definir una línea: punteada y sólida. Se podrían construir diferentes tipos de líneas con diferentes constructores.
+
+```
+final class Line
+{
+    private bool isDotted;
+    private int distanceBetweenDots;
+    
+    public static function dotted(int distanceBetweenDots): Line
+    {
+        if (distanceBetweenDots <= 0) {
+           throw new InvalidArgumentException(
+              'Expect the distance between dots to be positive.'
+           );
+        }
+        
+        line = new Line(/* ... */);
+        line.distanceBetweenDots = distanceBetweenDots;
+        line.isDotted = true;
+        
+        return line;
+    }
+    
+    public static function solid(): Line
+    {
+       line = new Line();
+       
+       line.isDotted = false; // No necesitamos preocuparnos de la distancia entre puntos en este caso
+       
+       return line;
+    }
+}
+```
+
+Estos métodos se llaman named constructors.
+
+Si se asegura de que cada objeto tenga los datos mínimos requeridos proporcionados en el momento de la construcción, y que estos datos sean correctos y significativos, solo encontrará objetos completos y válidos en su aplicación. Debe ser seguro asumir que puede usar todos los objetos según lo previsto. No debería haber sorpresas ni necesidad de rondas de validación adicionales.
+
 - Don’t use custom exception classes for invalid argument exceptions
 - Test for specific invalid argument exceptions by analyzing the exception’s message
 - Extract new objects to prevent domain invariants from being verified in multiple places (Value Objects)
