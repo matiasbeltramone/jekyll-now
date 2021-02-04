@@ -1166,10 +1166,368 @@ Sin embargo, rara vez debería necesitar hacer eso con excepciones de argumentos
 Para RuntimeExceptions, por otro lado, a menudo tiene sentido usar clases de excepciones personalizadas porque es posible que pueda recuperarse de ellas o convertirlas en mensajes de error fáciles de usar. Analizaremos las excepciones de tiempo de ejecución personalizadas y cómo crearlas en otra ocasión.
 
 - Test for specific invalid argument exceptions by analyzing the exception’s message
+
+Incluso si solo usa la clase genérica InvalidArgumentException para validar los argumentos del método, aún necesita una forma de distinguirlos en una prueba unitaria. Echemos otro vistazo a la clase y al constructor Coordenadas.
+
+```
+final class Coordinates
+{
+// ...
+public function __construct(float latitude, float longitude)
+{
+if (latitude > 90 || latitude < -90) {
+throw new InvalidArgumentException(
+'Latitude should be between -90 and 90'
+);
+}
+this.latitude = latitude;
+if (longitude > 180 || longitude < -180) {
+throw new InvalidArgumentException(
+'Longitude should be between -180 and 180'
+);
+}
+this.longitude = longitude;
+}
+}
+```
+
+Incluso si solo usa la clase genérica InvalidArgumentException para validar los argumentos del método, aún necesita una forma de distinguirlos en una prueba unitaria. Echemos otro vistazo a la clase y al constructor Coordenadas.
+
+Queremos verificar que los clientes no puedan pasar los argumentos incorrectos, por lo que podemos escribir algunas pruebas, como las siguientes.
+
+En el último caso de prueba, la InvalidArgumentException que se lanza desde el constructor no es la que esperaríamos que fuera. Debido a que el caso de prueba reutiliza un valor no válido para la latitud (–90,1) del caso de prueba anterior, intentar construir un objeto Coordenadas arrojará una excepción que nos indicará que "la latitud debe estar entre –90,0 y 90,0". Pero se suponía que la prueba verificaría que el código rechazaría valores inválidos de longitud. Esto deja al descubierto la verificación de rango para la longitud en un escenario de prueba, aunque todas las pruebas tengan éxito.
+Para evitar este tipo de error, asegúrese de verificar siempre que la excepción que detecta en una prueba unitaria sea de hecho la esperada. Una forma pragmática de hacer esto es verificar que el mensaje de excepción contenga ciertas palabras predefinidas.
+
+```
+expectException(
+InvalidArgumentException.className,
+'Longitude',
+function() {
+new Coordinates(-90.1, 180.1);
+}
+);
+```
+
+Agregar esta expectativa sobre el mensaje de excepción a la prueba en el snippet anterior hará que la prueba falle. Pasará de nuevo una vez que proporcionemos al constructor un valor sensible para la latitud.
+
 - Extract new objects to prevent domain invariants from being verified in multiple places (Value Objects)
+
+A menudo encontrará la misma lógica de validación repetida en la misma clase, o incluso en diferentes clases. Como ejemplo, eche un vistazo a la siguiente clase de usuario y cómo tiene que validar una dirección de correo electrónico en varios lugares, utilizando una función de la biblioteca estándar del idioma.
+
+```
+final class User
+{
+private string emailAddress;
+public function __construct(string emailAddress)
+{
+if (!is_valid_email_address(emailAddress)) {
+throw new InvalidArgumentException(
+'Invalid email address'
+);
+}
+this.emailAddress = emailAddress;
+}
+
+// ...
+public function changeEmailAddress(string emailAddress): void
+{
+if (!is_valid_email_address(emailAddress)) {
+throw new InvalidArgumentException(
+'Invalid email address'
+);
+}
+this.emailAddress = emailAddress;
+}
+}
+
+expectException(
+InvalidArgumentException.className,
+'email',
+function () {
+new User('not-a-valid-email-address');
+}
+Creates a valid
+);
+
+user = new User('valid@emailaddress.com');
+expectException(
+InvalidArgumentException.className,
+'email',
+function () use (user) {
+user.changeEmailAddress('not-a-valid-email-address');
+}
+);
+
+```
+
+Aunque podría extraer fácilmente la lógica de validación de la dirección de correo electrónico en un método separado, la mejor solución es introducir un nuevo tipo de objeto que represente una dirección de correo electrónico válida. Dado que esperamos que todos los objetos sean válidos en el momento en que se crean, podemos omitir la parte "válida" del nombre de la clase e implementarla de la siguiente manera.
+
+```
+final class EmailAddress
+{
+private string emailAddress;
+public function __construct(string emailAddress)
+{
+if (!is_valid_email_address(emailAddress)) {
+throw new InvalidArgumentException(
+'Invalid email address'
+);
+}
+this.emailAddress = emailAddress;
+}
+}
+```
+
+Siempre que encuentre un objeto EmailAddress, sabrá que representa un valor que ya ha sido validado:
+
+```
+final class User
+{
+private EmailAddress emailAddress;
+public function __construct(EmailAddress emailAddress)
+{
+this.emailAddress = emailAddress;
+}
+// ...
+public function changeEmailAddress(EmailAddress emailAddress): void
+{
+this.emailAddress = emailAddress;
+}
+}
+```
+
+Envolver valores dentro de nuevos objetos llamados objetos de valor no solo es útil para evitar la lógica de validación repetida. Tan pronto como observe que un método acepta un valor de tipo primitivo (string, int, etc.), debería considerar la posibilidad de introducir una clase para él. La pregunta guía para decidir si hacer esto o no es: "¿Cualquier string, int, etc. es aceptable aquí? " Si la respuesta es no, introduzca una nueva clase para el concepto.
+Debe considerar que la clase de objeto de valor en sí es un tipo, al igual que string, int, etc., son tipos. Al introducir más objetos para representar conceptos de dominio, está ampliando efectivamente el sistema de tipos. El compilador o el tiempo de ejecución de su lenguaje podrá brindarle soporte mucho mejor, porque puede realizar la verificación de tipos por usted y asegurarse de que solo se utilicen los tipos correctos al pasar argumentos de método y devolver valores.
+
 - Extract new objects to represent composite values (Money: Represented by Amount and Currency Value Objects)
+
+Al crear todos estos nuevos tipos, encontrará que algunos de ellos naturalmente pertenecen juntos y siempre se pasan juntos de una llamada a otro. Por ejemplo, una cantidad de dinero siempre viene con la moneda de la cantidad, como en la siguiente lista. Si un método recibiera solo una cantidad, no sabría cómo manejarlo.
+
+```
+final class Amount
+{
+// ...
+}
+
+final class Currency
+{
+// ...
+}
+
+final class Product
+{
+public function setPrice(
+Amount amount,
+Currency currency
+): void {
+// ...
+}
+}
+
+final class Converter
+{
+public function convert(
+Amount localAmount,
+Currency localCurrency,
+Currency targetCurrency
+): Amount {
+// ...
+}
+}
+```
+
+En este último ejemplo, el tipo de retorno es bastante confuso. Se devolverá un Monto y se espera que la moneda de este monto coincida con la Moneda objetivo dada. Pero esto no es evidente al observar los tipos utilizados en este método.
+Siempre que observe que los valores van juntos (o siempre se pueden encontrar juntos), envuelva esos valores en un nuevo tipo. En el caso de Monto y Moneda, un buen nombre para la combinación de los dos podría ser "dinero", lo que da como resultado la clase Money.
+
+```
+final class Money
+{
+public function __construct(Amount amount, Currency currency)
+{
+// ...
+}
+}
+```
+
+El uso de este tipo indica que desea mantener estos valores juntos, aunque si desea usarlos por separado, aún puede hacerlo.
+
+Agregar más tipos de objetos conduce a más escritura. ¿Es eso realmente necesario?
+
+100 tiene menos caracteres que el nuevo Amount (100), pero toda esa escritura adicional le brinda los beneficios de usar tipos de objetos:
+1 Puede estar seguro de que los datos que envuelve el objeto han sido validados.
+2 Un objeto generalmente expone comportamientos adicionales significativos que hacen uso de sus datos.
+3 Un objeto puede mantener juntos valores que van juntos o que tienen alta cohesión.
+4 Un objeto le ayuda a mantener los detalles de implementación lejos de sus clientes.
+
+Si cree que es complicado crear todos estos objetos uno por uno basándose en valores primitivos, siempre puede introducir métodos auxiliares para crearlos. Aquí tienes un ejemplo:
+// Antes de:
+money = new Money(new Amount(100), new Currency('USD'));
+// Después:
+money = Money.create(100, 'USD');
+
 - Use assertions to validate constructor arguments
+
+Ya hemos visto varios ejemplos de constructores que lanzan excepciones cuando algo anda mal. La estructura general es siempre así:
+
+if (somethingIsWrong ()) {
+lanzar una nueva InvalidArgumentException (/ * ... * /);
+}
+
+Estas verificaciones al comienzo de los métodos se denominan "afirmaciones" y son básicamente verificaciones de seguridad. Las afirmaciones se pueden utilizar para establecer la situación, examinar los materiales y señalar si algo anda mal. Por esta razón, las afirmaciones también se denominan "verificaciones de condiciones previas". Una vez que haya superado estas afirmaciones, debería ser seguro realizar la tarea en cuestión con los datos que se han proporcionado.
+Debido a que a menudo escribirá los mismos tipos de comprobaciones en muchos lugares diferentes, será conveniente utilizar una biblioteca de aserciones en su lugar. 1 Dicha biblioteca contiene muchas funciones de aserción que cubrirán casi todas las situaciones. Estos son algunos ejemplos:
+
+Assertion.greaterThan (valor, límite);
+Assertion.isCallable (valor);
+Afirmación entre (
+valor,
+límite inferior,
+limite superior
+);
+// y así...
+
+La pregunta es siempre: "¿Debería verificar que estas assertions funcionen en una prueba unitaria para su objeto?" La pregunta guía es: "¿Sería teóricamente posible que en tiempo de ejecución del lenguaje detectara este caso?" Si la respuesta es sí, no escriba una prueba unitaria.
+Por ejemplo, un lenguaje escrito dinámicamente como PHP no tiene una forma de establecer el tipo de un argumento en una lista de <nombre de clase>. En cambio, tendría que confiar en el tipo de array que es bastante genérico. Para verificar que un array dado es de hecho una lista plana de objetos de cierto tipo, usaría una aserción, como esta:
+ 
+```
+final class EventDispatcher
+{
+public function __construct(array eventListeners)
+{
+Assertion.allIsInstanceOf(
+eventListeners,
+EventListener.className
+);
+// ...
+}
+}
+```
+
+Dado que esta es una condición de error que podría detectar un sistema de tipos más evolucionado, no es necesario que escriba una prueba unitaria que detecte la excepción AssertionFailedException lanzada por allIsInstanceOf (). Sin embargo, si tiene que inspeccionar un valor dado y verificar que esté dentro de un rango determinado, o si tiene que verificar la cantidad de elementos en una lista, etc., tendrá que escribir una prueba unitaria que muestre que ha cubierto los casos de borde. Volviendo a un ejemplo anterior, el invariante de dominio de que una latitud determinada siempre está entre –90 y 90 inclusive debe verificarse con una prueba.
+
+```
+expectException(
+AssertionFailedException.className,
+'latitude',
+function() {
+new Coordinates(-90.1, 0.0)
+}
+);
+// and so on...
+```
+
+No recopile excepciones
+
+Aunque las herramientas a veces lo permiten, no debe guardar las excepciones de aserción y lanzarlas como una lista. Las assertions no están destinadas a proporcionar al usuario una lista conveniente de cosas que están mal. Están destinados al programador, que necesita saber que está utilizando un constructor o un método de forma incorrecta. Tan pronto como notes algo malo, haz que el objeto grite.
+Si desea proporcionar al usuario una lista de cosas incorrectas sobre los datos que proporcionó (al enviar un formulario, enviar una solicitud de API, etc.), debe usar un objeto de transferencia de datos (DTO) y validarlo en su lugar. Discutiremos este tipo de objeto más luego.
+
 - Don’t inject dependencies; optionally pass them as method arguments
+
+Los servicios pueden tener dependencias y deben inyectarse como argumentos de constructor. Pero a otros objetos no se les debe inyectar ninguna dependencia, solo valores, objetos de valor o listas de ellos. Si un objeto de valor aún necesita un servicio para realizar alguna tarea, puede inyectarlo opcionalmente como un argumento de método, como en la siguiente lista.
+
+```
+final class Money
+{
+private Amount amount;
+private Currency currency;
+public function __construct(Amount amount, Currency currency)
+{
+this.amount = amount;
+this.currency = currency;
+}
+public function convert(
+ExchangeRateProvider exchangeRateProvider,
+Currency targetCurrency
+): Money {
+
+exchangeRate = exchangeRateProvider.getRateFor(
+this.currency,
+targetCurrency
+);
+
+return exchangeRate.convert(this.amount);
+}
+}
+```
+
+A veces puede parecer un poco extraño pasar un servicio como argumento de método, por lo que tiene sentido considerar también implementaciones alternativas. Tal vez no deberíamos pasar el servicio ExchangeRateProvider, sino solo la información que obtenemos de él: ExchangeRate. Esto requeriría que Money exponga sus objetos internos Amount y Currency, pero ese puede ser un precio razonable a pagar por no inyectar la dependencia.
+Esto da como resultado una situación como la siguiente.
+
+```
+final class ExchangeRate
+{
+public function __construct(
+Currency from,
+Currency to,
+Rate rate
+) {
+// ...
+}
+public function convert(Amount amount): Money
+{
+// ...
+}
+}
+money = new Money(/* ... */);
+exchangeRate = exchangeRateProvider.getRateFor(
+money.currency(),
+targetCurrency
+);
+converted = exchangeRate.convert(money.amount());
+```
+
+Después de mover las cosas una vez más, podríamos conformarnos con una solución que involucre solo exponer el objeto Moneda interno de Money, no su Cantidad, como se hace en la siguiente lista. (Volveremos al tema de exponer las partes internas de los objetos en la sección 6.3).
+
+```
+final class Money
+{
+public function convert(ExchangeRate exchangeRate): Money
+{
+Assertion.equals(
+this.currency,
+exchangeRate.fromCurrency()
+);
+return new Money(
+exchangeRate.rate().applyTo(this.amount),
+exchangeRate.targetCurrency()
+);
+}
+}
+money = new Money(/* ... */);
+exchangeRate = exchangeRateProvider.getRateFor(
+money.currency(),
+targetCurrency
+);
+converted = money.convert(exchangeRate);
+```
+
+Se podría argumentar que esta solución expresa más claramente el conocimiento de dominio que tenemos sobre el dinero y los tipos de cambio. Por ejemplo, la cantidad convertida estará en la moneda de destino del tipo de cambio, y su moneda "fuente" será la misma moneda que la moneda del monto original.
+En algunos casos, la necesidad de pasar servicios como argumentos de método podría ser un indicio de que el comportamiento debería implementarse como un servicio. En el caso de convertir una cantidad de dinero a una moneda determinada, también podríamos crear un servicio y dejar que haga el trabajo, recopilando toda la información relevante de los objetos Monto y Moneda que se le proporcionan.
+
+```
+final class ExchangeService
+{
+private ExchangeRateProvider exchangeRateProvider;
+public function __construct(
+ExchangeRateProvider exchangeRateProvider
+) {
+this.exchangeRateProvider = exchangeRateProvider;
+}
+public function convert(
+Money money,
+Currency targetCurrency
+): Money {
+exchangeRate = this.exchangeRateProvider
+.getRateFor(money.currency(), targetCurrency);
+return new Money(
+exchangeRate.rate().applyTo(money.amount()),
+targetCurrency
+);
+}
+}
+```
+
+La solución que elija dependerá de qué tan cerca desee mantener el comportamiento de los datos, si cree que es demasiado para un objeto como Money saber también sobre los tipos de cambio, o cuánto desea evitar exponer las partes internas del objeto.
+
 - Use named constructors
 - Don’t use property fillers (fromArray(array $data))
 - Don’t put anything more into an object than it needs
