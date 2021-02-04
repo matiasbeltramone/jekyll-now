@@ -1146,6 +1146,25 @@ Estos métodos se llaman named constructors.
 Si se asegura de que cada objeto tenga los datos mínimos requeridos proporcionados en el momento de la construcción, y que estos datos sean correctos y significativos, solo encontrará objetos completos y válidos en su aplicación. Debe ser seguro asumir que puede usar todos los objetos según lo previsto. No debería haber sorpresas ni necesidad de rondas de validación adicionales.
 
 - Don’t use custom exception classes for invalid argument exceptions
+
+Hasta ahora, hemos estado lanzando una InvalidArgumentException genérica cada vez que un argumento de método no coincide con nuestras expectativas. Podríamos usar una clase de excepción personalizada que se extienda desde InvalidArgumentException. La ventaja de hacerlo es que podríamos detectar tipos específicos de excepciones y tratarlos de maneras específicas.
+
+```
+final class SpecificException extends InvalidArgumentException
+{
+}
+
+try {
+  // try to create the object
+} catch (SpecificException exception) {
+  // handle this specific problem in a specific way
+}
+```
+
+Sin embargo, rara vez debería necesitar hacer eso con excepciones de argumentos no válidos. Un argumento no válido significa que el cliente está utilizando el objeto de forma no válida. Por lo general, esto se debe a un error de programación. En ese caso, será mejor que falles y no intentes recuperarte, sino que corrijas el error.
+
+Para RuntimeExceptions, por otro lado, a menudo tiene sentido usar clases de excepciones personalizadas porque es posible que pueda recuperarse de ellas o convertirlas en mensajes de error fáciles de usar. Analizaremos las excepciones de tiempo de ejecución personalizadas y cómo crearlas en otra ocasión.
+
 - Test for specific invalid argument exceptions by analyzing the exception’s message
 - Extract new objects to prevent domain invariants from being verified in multiple places (Value Objects)
 - Extract new objects to represent composite values (Money: Represented by Amount and Currency Value Objects)
