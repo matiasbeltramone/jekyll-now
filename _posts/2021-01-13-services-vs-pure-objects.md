@@ -1200,11 +1200,11 @@ Para evitar este tipo de error, asegúrese de verificar siempre que la excepció
 
 ```
 expectException(
-InvalidArgumentException.className,
-'Longitude',
-function() {
-new Coordinates(-90.1, 180.1);
-}
+   InvalidArgumentException.className,
+   'Longitude',
+   function() {
+   new Coordinates(-90.1, 180.1);
+   }
 );
 ```
 
@@ -1529,10 +1529,331 @@ targetCurrency
 La solución que elija dependerá de qué tan cerca desee mantener el comportamiento de los datos, si cree que es demasiado para un objeto como Money saber también sobre los tipos de cambio, o cuánto desea evitar exponer las partes internas del objeto.
 
 - Use named constructors
+
+Para los servicios, está bien usar la forma estándar de definir constructores (función pública __construct()). Sin embargo, para otros tipos de objetos, se recomienda que utilice constructores con nombre. Estos son métodos estáticos públicos que devuelven una instancia. Podrían considerarse fábricas de objetos.
+
+### Crear a partir de valores de tipo primitivo
+
+Un caso común para usar constructores con nombre es construir un objeto a partir de uno o más valores de tipo primitivo. Esto da como resultado métodos como fromString (), fromInt (), etc. Como ejemplo, observe la siguiente clase Date.
+
+```
+final class Date
+{
+private const string FORMAT = 'd/m/Y';
+private DateTime date;
+private function __construct()
+{
+// do nothing here
+}
+public static function fromString(string date): Date
+{
+object = new Date();
+DateTime = DateTime.createFromFormat(
+Date.FORMAT,
+date
+);
+We’d still have to assert that
+createFromFormat() doesn’t
+return false.
+object.date = DateTime;
+return object;
+}
+}
+date = Date.fromString('1/4/2019');
+```
+
+Es importante agregar un método constructor regular, pero privado, para que los clientes no puedan omitir el constructor con nombre que les ofrece, lo que posiblemente dejaría el objeto en un estado no válido o incompleto.
+
+Espera, ¿esto funciona?
+Puede parecer extraño que este método público estático fromString () pueda crear una nueva instancia de objeto y manipular la propiedad de fecha de la nueva instancia. Después de todo, esta propiedad es privada, por lo que no debería permitirse, ¿verdad?
+
+El alcance de los métodos y propiedades generalmente se basa en clases, no en instancias, por lo que las propiedades privadas pueden ser manipuladas por cualquier objeto, siempre que sea de la misma clase exacta. El método fromString () en este ejemplo cuenta como un método de la misma clase, que
+es por eso que puede manipular la propiedad de la fecha directamente, sin la necesidad de un setter.
+
+No agregue inmediatamente toString (), toInt (), etc. Cuando agrega un constructor con nombre que crea un objeto basado en un valor de tipo primitivo, puede sentir la necesidad de simetría y desea agregar un método que pueda convertir el objeto de nuevo al valor de tipo primitivo. Por ejemplo, tener un constructor fromString () puede llevarlo a proporcionar automáticamente un método toString () también. Asegúrese de hacer esto solo una vez que haya una necesidad comprobada.
+
+### Introduce a domain-specific object
+
+Cuando discuta el concepto de una "orden de venta" con su experto en el dominio, nunca hablarían sobre "construir" una orden de venta. Tal vez hablarían sobre "crear" un pedido de ventas, o podrían usar un término más específico como "realizar" un pedido de ventas. Busque estas palabras y utilícelas como nombres de métodos para sus constructores nombrados.
+
+```
+final class SalesOrder
+{
+public static function place(/* ... */): SalesOrder
+{
+// ...
+}
+}
+salesOrder = SalesOrder.place(/* ... */);
+```
+
+Opcionalmente, use el constructor privado para aplicar restricciones. Algunos objetos pueden ofrecer varios constructores con nombre, porque hay diferentes formas de construirlos. Por ejemplo, si desea un valor decimal con cierta precisión, puede elegir un valor entero con una precisión entera positiva como la forma normalizada de representar dicho número. Al mismo tiempo, es posible que desee permitir que los clientes utilicen sus valores existentes, que son cadenas o flotantes, como entrada para trabajar con dicho valor decimal. El uso de un constructor privado ayuda a garantizar que sea cual sea el método de construcción elegido, el objeto terminará en un estado completo y consistente. Por ejemplo:
+
+```
+final class DecimalValue
+{
+private int value;
+private int precision;
+private function __construct(int value, int precision)
+{
+this.value = value;
+Assertion.greaterOrEqualThan(precision, 0);
+this.precision = precision;
+}
+public static function fromInt(
+int value,
+int precision
+): DecimalValue {
+return new DecimalValue(value, precision);
+}
+public static function fromFloat(
+float value,
+int precision
+): DecimalValue {
+return new DecimalValue(
+(int)round(value * pow(10, precision)),
+precision
+);
+}
+public static function fromString(string value): DecimalValue
+{
+result = preg_match('/^(\d+)\.(\d+)/', value, matches);
+if (result == 0) {
+throw new InvalidArgumentException(/* ... */);
+}
+wholeNumber = matches[1];
+decimals = matches[2];
+valueWithoutDecimalSign = wholeNumber . decimals;
+return new DecimalValue(
+(int)valueWithoutDecimalSign,
+strlen(decimals)
+);
+}
+}
+```
+
+En resumen, el uso de constructores con nombre ofrece dos ventajas principales:
+ Se pueden utilizar para ofrecer varias formas de construir un objeto.
+ Se pueden utilizar para introducir sinónimos específicos de dominio para crear un objeto.
+Además de crear entidades y objetos de valor, los constructores con nombre pueden utilizarse para ofrecer formas convenientes de crear instancias de excepciones personalizadas. Discutiremos estos más adelante, en la sección 5.2.
+
 - Don’t use property fillers (fromArray(array $data))
+
+La aplicación de todas las reglas de diseño de objetos de este libro conducirá a objetos que tienen el control total de lo que entra en ellos, lo que permanece dentro y lo que un cliente puede hacer con ellos. Una técnica que funciona completamente contra este estilo de diseño de objetos son los métodos de relleno de propiedades, que se parecen al siguiente método fromArray ().
+
+```
+final class Position
+{
+private int x;
+private int y;
+public static function fromArray(array data): Position
+{
+position = new Position();
+position.x = data['x'];
+position.y = data['y'];
+return position;
+}
+}
+```
+
+Este tipo de método podría incluso convertirse en una utilidad genérica que copiaría valores de la matriz de datos en las propiedades correspondientes mediante la reflexión. Aunque puede parecer conveniente, las partes internas del objeto ahora están al aire libre, así que siempre asegúrese de que la construcción de un objeto se realice de una manera que esté completamente controlada por el objeto en sí.
+
+Al final de este capítulo, veremos una excepción a esta regla. Para los objetos de transferencia de datos, un relleno de propiedades podría ser una forma de mapear, por ejemplo, datos de formularios en un objeto. Un objeto de este tipo no necesita proteger sus datos internos tanto como una entidad o un objeto de valor.
+
 - Don’t put anything more into an object than it needs
+
+Es común comenzar a diseñar un objeto pensando en lo que debe incluir. Para los servicios, puede terminar inyectando más dependencias de las que necesita, por lo que debe inyectar dependencias solo cuando las necesite. Lo mismo ocurre con otros tipos de objetos: no requiera más datos de los estrictamente necesarios para implementar el comportamiento del objeto.
+Un tipo de objeto que a menudo termina transportando más datos de los necesarios es un objeto de evento, que representa algo que ha sucedido en algún lugar de la aplicación. Un ejemplo de tal evento es la siguiente clase ProductCreated.
+
+```
+final class ProductCreated
+{
+public function __construct(
+ProductId productId,
+Description description,
+StockValuation stockValuation,
+Timestamp createdAt,
+UserId createdBy,
+/* ... */
+) {
+// ...
+}
+}
+
+this.recordThat( // Inside the product entity
+new ProductCreated(
+/* ... */
+)
+);
+```
+
+Si no sabe qué datos de eventos serán importantes para los oyentes de eventos que aún no se han implementado, no agregue nada. Simplemente agregue un constructor sin argumentos en absoluto y agregue más datos cuando se necesiten. De esta manera, proporcionará datos según sea necesario.
+¿Cómo saber qué datos deberían entrar realmente en el constructor de un objeto? Diseñando el objeto de una manera basada en pruebas. Esto significa que primero debe saber cómo se utilizará un objeto.
+
 - Don’t test constructors
+
+Escribir pruebas para sus objetos, especificando su comportamiento deseado, le permitirá averiguar qué datos se necesitan realmente en el momento de la construcción y qué datos se pueden proporcionar más adelante. También lo ayudará a determinar qué datos deben exponerse más adelante y qué datos pueden permanecer detrás de escena, como detalles de implementación del objeto.
+Como ejemplo, echemos otro vistazo a la clase Coordenadas que vimos anteriormente.
+
+```
+final class Coordinates
+{
+// ...
+public function __construct(float latitude, float longitude)
+{
+if (latitude > 90 || latitude < -90) {
+throw new InvalidArgumentException(
+'Latitude should be between -90 and 90'
+);
+}
+this.latitude = latitude;
+if (longitude > 180 || longitude < -180) {
+throw new InvalidArgumentException(
+'Longitude should be between -180 and 180'
+);
+}
+this.longitude = longitude;
+}
+}
+```
+
+¿Cómo podemos probar que el constructor funciona? ¿Qué pasa con la siguiente prueba?
+
+```
+public function it_can_be_constructed(): void
+{
+coordinates = new Coordinates(60.0, 100.0);
+assertIsInstanceOf(Coordinates.className, coordinates);
+}
+```
+
+Esto no es muy informativo. De hecho, es imposible que la aserción falle a menos que el constructor haya lanzado una excepción, que es un flujo de ejecución que explícitamente no estamos probando aquí.
+¿Cuál es la tarea del constructor? A juzgar por el código, se trata de asignar los argumentos del constructor dados a las propiedades internas del objeto. Entonces, ¿cómo podemos estar seguros de que ha funcionado? Podríamos agregar captadores, lo que nos permitiría averiguar qué hay dentro de las propiedades del objeto, de la siguiente manera
+
+```
+final class Coordinates
+{
+// ...
+public function latitude(): float
+{
+return this.latitude;
+}
+public function longitude(): float
+{
+return this.longitude;
+}
+}
+```
+
+La siguiente lista muestra cómo podríamos usar esos captadores en una prueba unitaria.
+
+```
+public function it_can_be_constructed(): void
+{
+coordinates = new Coordinates(60.0, 100.0);
+assertEquals(60.0, coordinates.latitude());
+assertEquals(100.0, coordinates.longitude());
+}
+```
+
+Pero ahora hemos introducido una forma para que los datos internos salgan del objeto, sin otra razón que probar el constructor. Mira lo que hemos hecho aquí: probamos el código del constructor después de escribirlo. Hemos estado probando este código, sabiendo lo que está sucediendo allí, lo que significa que la prueba está muy cerca de la implementación de la clase. Hemos estado colocando datos en un objeto, sin siquiera saber si alguna vez los volveremos a necesitar. En conclusión, hemos hecho demasiado, demasiado pronto, sin una buena dosis de distancia desde la implementación del objeto.
+Lo único que podemos y debemos hacer en este punto es probar que el constructor no acepta argumentos inválidos. Hemos hablado de esto antes: debe verificar que proporcionar valores de latitud y longitud fuera de sus rangos aceptables activa una excepción, lo que hace que sea imposible construir el objeto Coordenadas. Más adelante, hablaremos más sobre la exposición de datos, pero por ahora siga el siguiente consejo:
+ Solo pruebe un constructor para ver las formas en las que debería fallar.
+ Solo pase datos como argumentos de constructor cuando los necesite para implementar un comportamiento real en el objeto.
+ Solo agregue captadores para exponer datos internos cuando algún otro cliente que no sea la prueba los necesite.
+
+Una vez que comience a agregar el comportamiento real al objeto, implícitamente probará la ruta feliz para el constructor de todos modos, porque al hacerlo, necesitará un objeto completamente instanciado.
+
 - The exception to the rule: Data transfer objects
-  - Use public properties
-  - Don’t throw exceptions, collect validation errors
-  - Use property fillers when needed
+
+Las reglas descritas en este capítulo se aplican a entidades y objetos de valor; nos preocupamos mucho por la consistencia y validez de los datos que terminan dentro de dichos objetos. Estos objetos solo pueden garantizar un comportamiento correcto si los datos que utilizan también son correctos.
+Hay otro tipo de objeto que no he mencionado hasta ahora, al que no se aplican la mayoría de las reglas anteriores. Es un tipo de objeto que encontrará en los bordes de una aplicación, donde los datos provenientes del mundo exterior se convierten en una estructura con la que la aplicación puede trabajar. La naturaleza de este proceso requiere que se comporte un poco diferente a las entidades y los objetos de valor.
+Este tipo especial de objeto se conoce como objeto de transferencia de datos (DTO):
+ Se puede crear un DTO utilizando un constructor normal.
+ Sus propiedades se pueden configurar una a una.
+ Todas sus propiedades están expuestas.
+ Sus propiedades contienen solo valores de tipo primitivo.
+ Las propiedades pueden contener opcionalmente otros DTO o matrices simples de DTO.
+
+### Usar propiedades públicas
+
+Dado que un DTO no protege su estado y expone todas sus propiedades, no hay necesidad de captadores y definidores. Esto significa que es suficiente usar propiedades públicas para ellos. Debido a que los DTO se pueden construir en pasos y no requieren que se proporcione una cantidad mínima de datos, no necesitan métodos de constructor.
+Los DTO se utilizan a menudo como objetos de comando, que coinciden con la intención del usuario y contienen todos los datos necesarios para cumplir su deseo. Un ejemplo de un objeto de comando de este tipo es el siguiente comando ScheduleMeetup, que representa el deseo del usuario de programar una reunión con el título dado en la fecha indicada.
+
+```
+final class ScheduleMeetup
+{
+public string title;
+public string date;
+}
+```
+
+La forma en que puede usar un objeto de este tipo es, por ejemplo, llenándolo con los datos enviados con un formulario y luego pasándolo a un servicio, que programará la reunión para el usuario. Se puede encontrar un ejemplo de implementación en la siguiente lista.
+
+```
+final class MeetupController
+{
+public function scheduleMeetupAction(Request request): Response
+{
+formData = /* ... */;
+scheduleMeetup = new ScheduleMeetup();
+scheduleMeetup.title = formData['title'];
+scheduleMeetup.date = formData['date'];
+this.scheduleMeetupService.execute(scheduleMeetup);
+// ...
+}
+}
+```
+
+El servicio creará una entidad y algunos objetos de valor y eventualmente los conservará. Cuando se crean instancias, estos objetos generarán excepciones si hay algún problema con los datos que se les proporcionaron. Sin embargo, estas excepciones no son realmente fáciles de usar; ni siquiera se pueden traducir fácilmente al idioma del usuario. Además, debido a que interrumpen el flujo de la aplicación, las excepciones no se pueden recopilar y devolver al usuario como una lista de errores de entrada.
+
+### Don’t throw exceptions, collect validation errors
+
+Si desea permitir que los usuarios corrijan todos sus errores de una vez, antes de volver a enviar el formulario, debe validar los datos del comando antes de pasar el objeto al servicio que lo va a manejar. Una forma de hacerlo es agregando un método validate () al comando, que puede devolver una lista simple de errores de validación. Si la lista está vacía,
+significa que los datos enviados eran válidos.
+
+```
+final class ScheduleMeetup
+{
+public string title;
+public string date;
+public function validate(): array
+{
+errors = [];
+if (this.title == '') {
+errors['title'][] = 'validation.empty_title';
+}
+if (this.date == '') {
+errors['date'][] = 'validation.empty_date';
+}
+DateTime.createFromFormat('d/m/Y', this.date);
+errors = DateTime.getLastErrors();
+if (errors['error_count'] > 0) {
+errors['date'][] = 'validation.invalid_date_format';
+}
+return errors;
+}
+}
+```
+
+Las bibliotecas de formularios y validaciones pueden ofrecerle herramientas de validación más convenientes y reutilizables. Por ejemplo, los componentes de Symfony Form y Validator funcionan muy bien con este tipo de objeto de transferencia de datos.
+
+### Use property fillers when needed
+
+Anteriormente discutimos los rellenos de propiedad y cómo no se deben usar cuando se trabaja con la mayoría de los objetos; exponen todas las partes internas del objeto. En el caso de un DTO, esto no es un problema porque un DTO no protege sus partes internas de todos modos. Por lo tanto, si tiene sentido, puede agregar un método de relleno de propiedad a un DTO, como copiar datos de formulario o datos de solicitud JSON directamente en un objeto de comando. Dado que llenar las propiedades es lo primero que debería sucederle a un DTO, tiene sentido implementar el relleno de propiedades como un constructor con nombre.
+
+```
+final class ScheduleMeetup
+{
+public string title;
+public string date;
+public static function fromFormData(
+array formData
+): ScheduleMeetup {
+scheduleMeetup = new ScheduleMeetup();
+scheduleMeetup.title = formData['title'];
+scheduleMeetup.date = formData['date'];
+return scheduleMeetup;
+}
+}
+```
