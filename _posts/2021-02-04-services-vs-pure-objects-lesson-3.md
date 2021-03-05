@@ -4,7 +4,7 @@ title: "Services vs Pure Objects"
 tags: [Arquitecturas, Architecture, Clean Code, Código Limpio, DDD, Domain Driven Design]
 ---
 
-# Pure Objects
+# Pure Objects Characteristics
 
 Mencionamos anteriormente que hay dos tipos de objetos: servicios y otros objetos.
 El segundo tipo de objetos se puede dividir en subtipos más específicos, a saber, objetos de valor y entidades (a veces conocidos como "modelos"). Los servicios crearán o recuperarán entidades, las manipularán o las pasarán a otros servicios. También crearán objetos de valor y los pasarán como argumentos de método, o crearán copias modificadas de ellos. En este sentido, las entidades y los objetos de valor son los materiales que utilizan los servicios para realizar sus tareas.
