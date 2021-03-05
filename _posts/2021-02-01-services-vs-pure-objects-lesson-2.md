@@ -4,7 +4,7 @@ title: "Services vs Pure Objects"
 tags: [Arquitecturas, Architecture, Clean Code, Código Limpio, DDD, Domain Driven Design]
 ---
 
-# Service Objects
+# Service Objects Characteristics
 
 Características principales de los servicios
 
